@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# local env files — secrets live here, never commit
+.env
+.env.*
+!.env.example
+
+# run artifacts (screenshots, snapshots, findings) — local only.
+# Anchored to repo root so it does NOT also match app/runs/ or app/api/runs/.
+/runs/
+
+# local databases
+.pglite-data/
+
+# testing
+test-results/
+playwright-report/
+coverage/
+
+# misc
+*.tsbuildinfo
+.DS_Store
+.vercel/

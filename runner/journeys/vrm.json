@@ -1,0 +1,46 @@
+{
+  "persona": "vrm",
+  "description": "Daily power-user lens: portfolio triage, vendor assessment, questionnaires, remediation chase.",
+  "stops": [
+    {
+      "label": "home-vrm",
+      "url": "https://platform.securityscorecard.io/#/home",
+      "note": "The VRM workspace tab: does the default view answer 'which vendors moved this week'?"
+    },
+    {
+      "label": "portfolios",
+      "url": "https://platform.securityscorecard.io/#/portfolios/all",
+      "note": "Portfolio management: tiering, saved views, and whether a 1,400-vendor book is manageable here."
+    },
+    {
+      "label": "my-vendors",
+      "url": "https://platform.securityscorecard.io/#/my-vendors?monitored=true",
+      "note": "The vendor list: filtering, bulk actions, score-change visibility, path from list to action."
+    },
+    {
+      "label": "vendor-scorecard",
+      "url": "https://platform.securityscorecard.io/#/scorecard/google.com",
+      "note": "A vendor's scorecard: evidence quality, attribution trust, and what I'd send the vendor from here."
+    },
+    {
+      "label": "questionnaires",
+      "url": "https://platform.securityscorecard.io/#/assessments",
+      "note": "Atlas questionnaires: does this reduce questionnaire fatigue? How does it connect to the rating?"
+    },
+    {
+      "label": "action-plans",
+      "url": "https://platform.securityscorecard.io/#/action-plans",
+      "note": "Remediation collaboration: can I set SLAs, chase vendors, and prove closure to auditors?"
+    },
+    {
+      "label": "vendor-detection",
+      "url": "https://platform.securityscorecard.io/#/scorecard/my/detection/vendors",
+      "note": "Automatic Vendor Detection: fourth-party/concentration visibility — signal or noise?"
+    },
+    {
+      "label": "requests-log",
+      "url": "https://platform.securityscorecard.io/#/requests-log",
+      "note": "Requests log: audit trail quality for regulator/exam evidence."
+    }
+  ]
+}

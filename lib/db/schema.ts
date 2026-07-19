@@ -147,3 +147,34 @@ export const screenshots = pgTable(
     uniqueIndex("screenshots_run_persona_label_idx").on(t.runId, t.persona, t.label),
   ],
 );
+
+/**
+ * Ingested customer feedback (Phase 1). Scraped review-site items plus a place
+ * for future connectors (Pendo/Gong/Gainsight/Snowflake). `dedupeKey` is the
+ * idempotency key (source_url when present, else a stable hash) so re-running
+ * the scraper skips what already exists.
+ */
+export const feedbackItems = pgTable(
+  "feedback_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** capterra | g2 | trustradius | pendo | gong | gainsight */
+    source: text("source").notNull(),
+    sourceUrl: text("source_url"),
+    /** Stable dedupe key: source_url or a hash of source+title+body. */
+    dedupeKey: text("dedupe_key").notNull(),
+    /** Review date as reported by the source (free-form string, e.g. "May 2026"). */
+    reviewDate: text("review_date"),
+    rating: real("rating"),
+    title: text("title"),
+    body: text("body").notNull(),
+    reviewerRoleRaw: text("reviewer_role_raw"),
+    /** Inferred from reviewer role: ciso | vrm | gtm_cs | null. */
+    personaGuess: text("persona_guess"),
+    scrapedAt: timestamp("scraped_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("feedback_items_source_idx").on(t.source),
+    uniqueIndex("feedback_items_dedupe_idx").on(t.dedupeKey),
+  ],
+);

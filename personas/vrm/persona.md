@@ -1,6 +1,7 @@
 ---
 name: The Vendor Risk Manager
 slug: vrm
+created: "2026-07-19"
 title: Director of Third-Party Risk Management
 company_profile: Meridian Mutual Financial, a fictional mid-size US financial services and insurance firm (~8,500 employees, ~1,400 active third parties) regulated under NYDFS Part 500 and the 2023 Interagency Guidance, running TPRM with a team of four analysts.
 jtbd:

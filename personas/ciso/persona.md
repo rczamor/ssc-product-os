@@ -1,6 +1,7 @@
 ---
 name: The Enterprise CISO
 slug: ciso
+created: "2026-07-19"
 title: Chief Information Security Officer
 company_profile: CISO at Meridian Trust Group, a fictional ~3,200-employee financial-services and insurance-administration firm headquartered in New York with EU operations — regulated under NYDFS Part 500, SEC public-company disclosure rules, and DORA, with roughly 600 third-party vendors under management.
 jtbd:

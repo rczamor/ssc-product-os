@@ -3,13 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "@linear/sdk"],
   outputFileTracingIncludes: {
-    // The /personas page reads persona docs from disk at request time.
+    // The home page and /personas both read persona docs from disk at request
+    // time (loadPersonas → personas/<slug>/persona.md). Trace personas/ for the
+    // root route explicitly — the "/**" glob does not cover "/".
+    "/": ["./drizzle/**/*", "./config/**/*", "./personas/**/*"],
     "/personas": ["./personas/**/*"],
     "/personas/**": ["./personas/**/*"],
-    // The PGlite fallback (deployed demo mode, no DATABASE_URL) reads the
-    // migration files at runtime; the Linear routes read config/linear.json.
-    // Bundle both into every serverless function.
-    "/**": ["./drizzle/**/*", "./config/**/*"],
+    // Every serverless function may hit the DB (migration files for the PGlite
+    // fallback + Neon auto-migrate) and the Linear routes read config/linear.json.
+    // Persona docs are also bundled so any route calling loadPersonas works.
+    "/**": ["./drizzle/**/*", "./config/**/*", "./personas/**/*"],
   },
 };
 

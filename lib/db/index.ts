@@ -63,8 +63,36 @@ async function init(): Promise<Db> {
 
   const { neon } = await import("@neondatabase/serverless");
   const { drizzle } = await import("drizzle-orm/neon-http");
+  const path = await import("path");
   const sql = neon(process.env.DATABASE_URL!);
-  return drizzle(sql, { schema }) as unknown as Db;
+  const db = drizzle(sql, { schema }) as unknown as Db;
+
+  // Neon has no auto-migration step (unlike the PGlite branch above), so a
+  // freshly provisioned DATABASE_URL points at an empty database and every
+  // query 500s with `relation "runs" does not exist`. Apply pending migrations
+  // on first connect. This is idempotent — drizzle records applied hashes in
+  // __drizzle_migrations and skips them next time. neon-http has no
+  // transactions, so two cold-start instances can race on the first migration;
+  // tolerate "already exists" from the loser and let the winner finish.
+  if (process.env.DB_AUTO_MIGRATE !== "0") {
+    const { migrate } = await import("drizzle-orm/neon-http/migrator");
+    try {
+      await migrate(db as never, { migrationsFolder: path.join(process.cwd(), "drizzle") });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!/already exists|duplicate/i.test(msg)) throw e;
+    }
+  }
+
+  // Optional: populate an empty deployed database with the labeled demo run +
+  // feedback so the dashboard isn't blank. Off by default (never writes to a
+  // real DB uninvited); seed() itself skips if any run already exists.
+  if (process.env.DB_SEED_ON_EMPTY === "1") {
+    const { seed } = await import("./seed");
+    await seed(db);
+  }
+
+  return db;
 }
 
 /** True when the app is running against a real (Neon) database. */

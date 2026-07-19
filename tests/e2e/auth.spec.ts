@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
+import { ADMIN_EMAIL, login } from "./helpers";
 
 test("unauthenticated visitors are redirected to /login", async ({ page }) => {
   await page.goto("/");
@@ -15,9 +15,10 @@ test("unauthenticated API calls get 401", async ({ request }) => {
 
 test("wrong password shows an error and stays on login", async ({ page }) => {
   await page.goto("/login");
+  await page.getByPlaceholder("Admin email").fill(ADMIN_EMAIL);
   await page.getByPlaceholder("Admin password").fill("not-the-password");
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByText("wrong password")).toBeVisible();
+  await expect(page.getByText("wrong email or password")).toBeVisible();
   await expect(page).toHaveURL(/\/login$/);
 });
 

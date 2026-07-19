@@ -9,15 +9,20 @@ One long-lived Chromium session (started once per run) holds login state; every
 command below is a short process that attaches to it over CDP, acts, prints,
 and exits. Always run commands from the repo root.
 
-**Env prefix**: run every command as
+**Running commands (env):** prefer the `bin/run` wrapper, which loads
+`.env.local` in-process and sets `NODE_EXTRA_CA_CERTS` before the child starts:
 
 ```bash
-set -a; . ./.env.local; set +a; npx tsx runner/browse.ts <cmd> …
+node bin/run.mjs npx tsx runner/browse.ts <cmd> …
 ```
 
-(sourcing exports `NODE_EXTRA_CA_CERTS` for the TLS-intercepting proxy — the
-script loads the rest of `.env.local` itself, but that variable must exist
-before Node starts).
+The older prefix `set -a; . ./.env.local; set +a; npx tsx runner/browse.ts <cmd>`
+also works, BUT bash expands `$`-sequences when it sources the file — a value
+like `SSC_PASSWORD=3H$7ASRiip` becomes `3HASRiip` and login fails. `.env.local`
+values are single-quoted to prevent this; `bin/run` avoids the hazard entirely
+(no shell involved). `NODE_EXTRA_CA_CERTS` must be present before Node starts
+(for the TLS-intercepting proxy on Langfuse/Neon calls); both approaches ensure
+that.
 
 ## Command contract
 

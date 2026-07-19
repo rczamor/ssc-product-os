@@ -14,6 +14,7 @@ export default defineConfig({
       // PGLITE_DATA_DIR from a developer's .env.local into tests.
       PGLITE_DATA_DIR: "",
       SESSION_SECRET: "test-session-secret",
+      ADMIN_EMAIL: "admin@example.com",
       ADMIN_PASSWORD: "test-password",
     },
     testTimeout: 30_000,

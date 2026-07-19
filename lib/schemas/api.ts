@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PERSONAS, PersonaSlugSchema } from "./findings";
 
 export const LoginRequestSchema = z.object({
+  email: z.string().min(1).max(256),
   password: z.string().min(1).max(256),
 });
 

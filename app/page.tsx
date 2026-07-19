@@ -2,11 +2,14 @@ import Link from "next/link";
 import { desc } from "drizzle-orm";
 import { getDb, isPersistentDb } from "@/lib/db";
 import { runRequests } from "@/lib/db/schema";
-import { listRunsWithCounts } from "@/lib/db/queries";
+import { getIngestionSummary, listRunsWithCounts } from "@/lib/db/queries";
+import { clusterThemes } from "@/lib/feedback-themes";
+import { loadPersonas } from "@/lib/personas";
 import { formatTimestamp } from "@/lib/validation";
 import { StatusBadge, PersonaBadge } from "@/components/Badges";
 import TriggerRunButton from "@/components/TriggerRunButton";
 import CancelRequestButton from "@/components/CancelRequestButton";
+import IngestionPanel, { type PersonaKnowledgeBase } from "@/components/IngestionPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +22,19 @@ export default async function DashboardPage() {
     .orderBy(desc(runRequests.createdAt))
     .limit(10);
 
+  const ingestion = await getIngestionSummary();
+  const themes = clusterThemes(ingestion.items);
+  const personaDocs = loadPersonas();
+  const personaBases: PersonaKnowledgeBase[] = personaDocs.map((p) => ({
+    slug: p.slug,
+    name: p.name,
+    title: p.title,
+    created: p.created,
+    jtbdCount: p.jtbd.length,
+    corpusCount: p.corpus.length,
+    feedbackCount: ingestion.personaCounts[p.slug] ?? 0,
+  }));
+
   return (
     <div className="space-y-6">
       {!isPersistentDb() && (
@@ -29,6 +45,8 @@ export default async function DashboardPage() {
       )}
 
       <TriggerRunButton />
+
+      <IngestionPanel summary={ingestion} themes={themes} personas={personaBases} />
 
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-5 py-4">

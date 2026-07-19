@@ -1,5 +1,14 @@
 import type { Db } from "./index";
-import { deliverables, findings, personaEvaluations, runRequests, runs, screenshots } from "./schema";
+import {
+  deliverables,
+  feedbackItems,
+  findings,
+  personaEvaluations,
+  runRequests,
+  runs,
+  screenshots,
+} from "./schema";
+import { feedbackDedupeKey, guessPersona } from "@/lib/schemas/feedback";
 
 /** 1x1 white JPEG — placeholder screenshot bytes for seeded demo data. */
 const TINY_JPEG_BASE64 =
@@ -18,6 +27,7 @@ const TINY_JPEG_BASE64 =
  * Skips itself if any run already exists.
  */
 export async function seed(db: Db): Promise<void> {
+  await seedFeedback(db);
   const existing = await db.select({ id: runs.id }).from(runs).limit(1);
   if (existing.length > 0) return;
 
@@ -315,4 +325,112 @@ export async function seed(db: Db): Promise<void> {
     runId: run.id,
     claimedAt: new Date(),
   });
+}
+
+/**
+ * A compact slice of the review-site feedback corpus so the Planning ingestion
+ * panel renders in e2e/demo before a real ingest. These nine rows are VERBATIM
+ * copies of the first nine items in data/feedback-seed.json (same source/title/
+ * body), so their content-hash dedupe keys match the full corpus — running
+ * runner/publish-feedback.ts against the JSON after a seed skips these nine
+ * instead of creating semantic duplicates. Guarded independently of the run seed
+ * (feedback_items is a separate table); idempotent on dedupe_key.
+ */
+const FEEDBACK_SEED: Array<{
+  source: "capterra" | "g2" | "trustradius";
+  reviewDate: string;
+  rating: number;
+  title: string;
+  body: string;
+  reviewerRoleRaw: string;
+}> = [
+  {
+    source: "g2",
+    reviewDate: "May 2026",
+    rating: 4.5,
+    title: "Board-ready risk narrative in minutes",
+    body: "The A-F letter grade is the single most useful thing for me. I can put one slide in front of the audit committee and everyone immediately understands where we stand versus peers. Drilling from the grade into the specific factors is intuitive, and the peer benchmarking helped me justify next year's budget.",
+    reviewerRoleRaw: "Chief Information Security Officer",
+  },
+  {
+    source: "g2",
+    reviewDate: "April 2026",
+    rating: 2.5,
+    title: "Score volatility undermines the exec conversation",
+    body: "We remediated a finding, confirmed it externally, and it still took almost three weeks for the score to move. In the meantime the board asked why our rating dropped. The outside-in signal is valuable but the lag between fixing something and seeing it reflected makes it hard to trust in front of leadership.",
+    reviewerRoleRaw: "VP of Information Security",
+  },
+  {
+    source: "capterra",
+    reviewDate: "March 2026",
+    rating: 2.0,
+    title: "Attribution false positives cost us real hours",
+    body: "Several IP addresses flagged against us simply are not ours — they belong to a former hosting provider. Disputing attribution is a slow ticket-based process and the findings keep resurfacing. When you are trying to hold vendors accountable to their own scores, having your own score be wrong is a credibility problem.",
+    reviewerRoleRaw: "Security Operations Analyst",
+  },
+  {
+    source: "trustradius",
+    reviewDate: "May 2026",
+    rating: 4.0,
+    title: "Best tool we have for monitoring 500+ vendors",
+    body: "Continuous monitoring across our whole third-party portfolio is exactly what we needed. The alerting when a critical vendor's grade drops lets my small team focus diligence where it actually matters instead of chasing everyone equally. Portfolio views are strong.",
+    reviewerRoleRaw: "Third Party Risk Manager",
+  },
+  {
+    source: "g2",
+    reviewDate: "February 2026",
+    rating: 3.0,
+    title: "Questionnaire workflow is clunky",
+    body: "Sending and chasing security questionnaires through the Atlas workflow is more manual than I expected. Vendors get confused by the portal, responses stall, and mapping their answers back to our internal risk register is copy-paste. It works, but it does not save the time I hoped when we bought it for TPRM.",
+    reviewerRoleRaw: "Vendor Risk Management Lead",
+  },
+  {
+    source: "capterra",
+    reviewDate: "January 2026",
+    rating: 5.0,
+    title: "Remediation guidance is genuinely actionable",
+    body: "What sets it apart from other rating tools is that each finding comes with a clear description of what to fix and why it matters. My team can hand the remediation notes straight to IT without translating. That closed-loop guidance is why we renewed.",
+    reviewerRoleRaw: "Director of Cyber Risk",
+  },
+  {
+    source: "trustradius",
+    reviewDate: "April 2026",
+    rating: 2.0,
+    title: "Pricing scales painfully as you add vendors",
+    body: "The platform is good but the per-vendor pricing model meant our renewal quote jumped well beyond budget once we wanted continuous monitoring on the full supplier base. We had to cut the number of monitored vendors, which defeats the purpose of portfolio-wide visibility.",
+    reviewerRoleRaw: "Procurement and Supplier Risk Manager",
+  },
+  {
+    source: "g2",
+    reviewDate: "June 2026",
+    rating: 4.0,
+    title: "Great for demonstrating posture to customers",
+    body: "As a CSM I use our own scorecard in QBRs to show customers we take security seriously, and I use their scorecards to move deals forward when procurement raises a security objection. Having a shared, third-party-validated number cuts through a lot of back-and-forth.",
+    reviewerRoleRaw: "Customer Success Manager",
+  },
+  {
+    source: "g2",
+    reviewDate: "March 2026",
+    rating: 3.5,
+    title: "Powerful but a steep learning curve",
+    body: "There is a lot here and the initial onboarding was heavier than expected. Once you understand the factor weighting it is powerful, but new analysts on my team take a while to become productive. Better in-product guidance would help adoption.",
+    reviewerRoleRaw: "Information Security Manager",
+  },
+];
+
+async function seedFeedback(db: Db): Promise<void> {
+  const existing = await db.select({ id: feedbackItems.id }).from(feedbackItems).limit(1);
+  if (existing.length > 0) return;
+  await db.insert(feedbackItems).values(
+    FEEDBACK_SEED.map((f) => ({
+      source: f.source,
+      dedupeKey: feedbackDedupeKey(f),
+      reviewDate: f.reviewDate,
+      rating: f.rating,
+      title: f.title,
+      body: f.body,
+      reviewerRoleRaw: f.reviewerRoleRaw,
+      personaGuess: guessPersona(f.reviewerRoleRaw),
+    })),
+  );
 }

@@ -2,11 +2,17 @@ import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import {
   deliverables,
+  feedbackItems,
   findings,
   personaEvaluations,
   runs,
   screenshots,
 } from "./schema";
+import {
+  FEEDBACK_SOURCE_LABELS,
+  INGESTION_SOURCES,
+  type FeedbackSource,
+} from "@/lib/schemas/feedback";
 
 export interface RunWithCounts {
   id: string;
@@ -57,6 +63,106 @@ export async function listRunsWithCounts(limit = 50): Promise<RunWithCounts[]> {
     dislikeCount: Number(countByRun.get(run.id)?.dislikes ?? 0),
     hasDeliverable: hasDeliverable.has(run.id),
   }));
+}
+
+export interface FeedbackRow {
+  id: string;
+  source: string;
+  sourceUrl: string | null;
+  reviewDate: string | null;
+  rating: number | null;
+  title: string | null;
+  body: string;
+  reviewerRoleRaw: string | null;
+  personaGuess: string | null;
+  scrapedAt: Date | null;
+}
+
+export interface IngestionSource {
+  source: string;
+  label: string;
+  kind: "scraped" | "connector";
+  note: string;
+  connected: boolean;
+  count: number;
+  lastUpdated: Date | null;
+}
+
+export interface IngestionSummary {
+  totalItems: number;
+  sources: IngestionSource[];
+  personaCounts: Record<string, number>;
+  items: FeedbackRow[];
+}
+
+/**
+ * Ingestion-panel data for the Planning screen: per-source counts + last-updated,
+ * merged with the connector catalog so "available but not connected" targets
+ * (Pendo/Gong/Gainsight/Snowflake) render as stubs. A source counts as
+ * "connected" once it has at least one ingested item. Returns the raw items too
+ * so the caller can cluster themes without a second round-trip.
+ *
+ * Counts (`totalItems`, per-source, `personaCounts`) come from a full-table
+ * aggregation, but `items` (used for theme clustering) is bounded to the most
+ * recent `itemLimit` rows so a large corpus can't balloon the page payload. At
+ * demo scale these coincide; past `itemLimit` the theme "mentions" reflect the
+ * recent window while the header counts reflect everything — an intended bound,
+ * not drift.
+ */
+export async function getIngestionSummary(itemLimit = 500): Promise<IngestionSummary> {
+  const db = await getDb();
+
+  const grouped = await db
+    .select({
+      source: feedbackItems.source,
+      count: sql<number>`count(*)`,
+      lastUpdated: sql<Date | null>`max(${feedbackItems.scrapedAt})`,
+      personaGuess: feedbackItems.personaGuess,
+    })
+    .from(feedbackItems)
+    .groupBy(feedbackItems.source, feedbackItems.personaGuess);
+
+  const bySource = new Map<string, { count: number; lastUpdated: Date | null }>();
+  const personaCounts: Record<string, number> = {};
+  let totalItems = 0;
+  for (const g of grouped) {
+    const n = Number(g.count);
+    totalItems += n;
+    const prev = bySource.get(g.source) ?? { count: 0, lastUpdated: null };
+    const lu = g.lastUpdated ? new Date(g.lastUpdated) : null;
+    bySource.set(g.source, {
+      count: prev.count + n,
+      lastUpdated:
+        lu && (!prev.lastUpdated || lu > prev.lastUpdated) ? lu : prev.lastUpdated,
+    });
+    const persona = g.personaGuess ?? "unmapped";
+    personaCounts[persona] = (personaCounts[persona] ?? 0) + n;
+  }
+
+  const sources: IngestionSource[] = INGESTION_SOURCES.map((s) => {
+    const stats = bySource.get(s.source);
+    const label =
+      s.source in FEEDBACK_SOURCE_LABELS
+        ? FEEDBACK_SOURCE_LABELS[s.source as FeedbackSource]
+        : s.source.charAt(0).toUpperCase() + s.source.slice(1);
+    return {
+      source: s.source,
+      label,
+      kind: s.kind,
+      note: s.note,
+      connected: Boolean(stats && stats.count > 0),
+      count: stats?.count ?? 0,
+      lastUpdated: stats?.lastUpdated ?? null,
+    };
+  });
+
+  const items = await db
+    .select()
+    .from(feedbackItems)
+    .orderBy(desc(feedbackItems.scrapedAt))
+    .limit(itemLimit);
+
+  return { totalItems, sources, personaCounts, items };
 }
 
 /** Full run detail (used by both the run-detail page and the runs/:id API). */

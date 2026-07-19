@@ -1,6 +1,7 @@
 ---
 name: "The Customer-Facing CSM/SE"
 slug: gtm_cs
+created: "2026-07-19"
 title: Senior Customer Success Manager (CSM/SE hybrid), Enterprise Accounts, SecurityScorecard
 company_profile: Works at SecurityScorecard, the security-ratings and supply-chain risk vendor that rates 12M+ organizations. Owns a book of enterprise accounts end-to-end — onboarding through renewal — and carries gross/net retention and adoption targets, running live platform sessions with customers and prospects daily.
 jtbd:

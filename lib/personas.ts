@@ -20,6 +20,8 @@ export interface PersonaDoc {
   companyProfile: string;
   jtbd: string[];
   kpis: string[];
+  /** ISO date the persona knowledge base was established (front-matter). */
+  created: string | null;
   body: string;
   corpus: CorpusDoc[];
 }
@@ -41,6 +43,20 @@ function toStringList(value: unknown): string[] {
     }
     return String(item);
   });
+}
+
+/**
+ * Normalize a front-matter date to a plain YYYY-MM-DD string. Unquoted YAML
+ * dates (`created: 2026-07-19`) parse as JS `Date` objects, whose `String()`
+ * form is a verbose, timezone-shifted datetime (off-by-one in negative offsets).
+ * Coerce both a Date and a string to the ISO date, taking the UTC calendar day.
+ */
+function toIsoDate(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  const s = String(value).trim();
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
 }
 
 function readCorpusDir(dir: string): CorpusDoc[] {
@@ -78,6 +94,7 @@ export function loadPersonas(): PersonaDoc[] {
       companyProfile: String(parsed.data.company_profile ?? ""),
       jtbd: toStringList(parsed.data.jtbd),
       kpis: toStringList(parsed.data.kpis),
+      created: toIsoDate(parsed.data.created),
       body: parsed.content,
       corpus: readCorpusDir(path.join(PERSONAS_DIR, slug, "corpus")),
     };

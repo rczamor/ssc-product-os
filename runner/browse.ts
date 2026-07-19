@@ -20,16 +20,19 @@ import fs from "fs";
 import path from "path";
 import { chromium, type Page } from "playwright";
 import { loadEnv } from "./lib/env";
+import { arg as argOf, hasFlag as hasFlagOf, positionals } from "./lib/args";
 import {
   attach,
   appendJson,
+  assertSafeSegment,
   clearBrowserInfo,
-  LOGIN_URL_RE,
+  isLoginWall,
   PLATFORM_URL,
   readBrowserInfo,
   runDir,
   RUNS_DIR,
   sleep,
+  urlLooksLikeLogin,
   writeBrowserInfo,
 } from "./lib/session";
 
@@ -38,23 +41,29 @@ loadEnv();
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
+const ARGV = process.argv.slice(3);
+
 function arg(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i >= 0 ? process.argv[i + 1] : undefined;
+  return argOf(ARGV, flag);
 }
 
 function hasFlag(flag: string): boolean {
-  return process.argv.includes(flag);
+  return hasFlagOf(ARGV, flag);
 }
 
 function positional(n: number): string | undefined {
-  // argv: [node, script, command, ...positionals/flags]
-  const args = process.argv.slice(3).filter((a, i, all) => {
-    if (a.startsWith("--")) return false;
-    const prev = all[i - 1];
-    return !(prev && prev.startsWith("--") && !["--full"].includes(prev));
-  });
-  return args[n];
+  return positionals(ARGV)[n];
+}
+
+/** Resolve the CDP port, rejecting a blank/non-numeric BROWSE_PORT. */
+function resolvePort(): number {
+  const raw = process.env.BROWSE_PORT;
+  if (raw === undefined || raw.trim() === "") return 9222;
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+    die(`invalid BROWSE_PORT: ${raw}`);
+  }
+  return port;
 }
 
 function die(msg: string): never {
@@ -70,24 +79,39 @@ async function printPageState(page: Page, note?: string): Promise<void> {
   } catch {
     /* page may be navigating */
   }
-  if (LOGIN_URL_RE.test(url)) console.log("SESSION_EXPIRED (page is a login wall)");
+  if (urlLooksLikeLogin(url)) console.log("SESSION_EXPIRED (page is a login wall)");
   console.log(`url: ${url}`);
   console.log(`title: ${title}`);
   if (note) console.log(note);
 }
 
+/** True if pid is alive AND looks like one of our browse.ts processes, so we
+ *  never treat (or later kill) a pid-reused unrelated process as our browser. */
+function isOurBrowserProcess(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+  } catch {
+    return false;
+  }
+  try {
+    const cmd = fs.readFileSync(`/proc/${pid}/cmdline`, "utf8");
+    return cmd.includes("browse.ts");
+  } catch {
+    // /proc unavailable (non-Linux): fall back to liveness only.
+    return true;
+  }
+}
+
 async function cmdStart(): Promise<void> {
   const runId = arg("--run") ?? "adhoc";
-  const port = Number(process.env.BROWSE_PORT ?? 9222);
+  const port = resolvePort();
   const existing = readBrowserInfo();
   if (existing) {
-    try {
-      process.kill(existing.pid, 0);
+    if (isOurBrowserProcess(existing.pid)) {
       console.log(`already running (pid ${existing.pid}, port ${existing.port}) — reusing`);
       return;
-    } catch {
-      clearBrowserInfo();
     }
+    clearBrowserInfo();
   }
   const profileDir = path.join(RUNS_DIR, ".profile");
   fs.mkdirSync(profileDir, { recursive: true });
@@ -170,13 +194,10 @@ async function cmdLogin(): Promise<void> {
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
     await sleep(2_000);
 
-    if (!LOGIN_URL_RE.test(page.url())) {
-      const emailField = await firstVisible(page, ['input[type="email"]', 'input[type="password"]'], 2_000);
-      if (!emailField) {
-        console.log("logged-in: yes (existing session)");
-        await printPageState(page);
-        return;
-      }
+    if (!(await isLoginWall(page))) {
+      console.log("logged-in: yes (existing session)");
+      await printPageState(page);
+      return;
     }
 
     const emailInput = await firstVisible(
@@ -239,13 +260,7 @@ async function cmdLogin(): Promise<void> {
     let loggedIn = false;
     while (Date.now() < deadline) {
       await sleep(3_000);
-      const passwordVisible = await page
-        .locator('input[type="password"]')
-        .first()
-        .isVisible()
-        .catch(() => false);
-      const title = await page.title().catch(() => "");
-      if (!passwordVisible && !/log ?in|sign ?in/i.test(title)) {
+      if (!(await isLoginWall(page))) {
         loggedIn = true;
         break;
       }
@@ -298,12 +313,13 @@ async function cmdGoto(): Promise<void> {
 }
 
 async function cmdSnapshot(): Promise<void> {
-  const max = Number(arg("--max") ?? 40_000);
+  const maxRaw = Number(arg("--max") ?? 40_000);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 40_000;
   const { browser, page } = await attach();
   try {
     const snap = await page.locator("body").ariaSnapshot();
     console.log(`url: ${page.url()}`);
-    if (LOGIN_URL_RE.test(page.url())) console.log("SESSION_EXPIRED (page is a login wall)");
+    if (await isLoginWall(page)) console.log("SESSION_EXPIRED (page is a login wall)");
     console.log("--- aria snapshot ---");
     console.log(snap.length > max ? `${snap.slice(0, max)}\n… truncated (${snap.length} chars total; use --max)` : snap);
   } finally {
@@ -358,6 +374,13 @@ async function cmdScreenshot(): Promise<void> {
   const label = arg("--label");
   if (!runId || !label) die("usage: screenshot --run <id> --persona <p> --label <slug> [--full]");
   if (!/^[a-z0-9][a-z0-9-]{1,63}$/.test(label)) die("label must be a lowercase slug");
+  // These become filesystem path segments — reject traversal / injection.
+  try {
+    assertSafeSegment("run id", runId);
+    assertSafeSegment("persona", persona);
+  } catch (e) {
+    die(e instanceof Error ? e.message : String(e));
+  }
   const { browser, page } = await attach();
   try {
     const dir = runDir(runId, persona);
@@ -398,17 +421,18 @@ async function cmdStop(): Promise<void> {
     console.log("no browser session recorded");
     return;
   }
-  try {
-    process.kill(info.pid, "SIGTERM");
-    await sleep(2_000);
+  // Only signal the pid if it is still one of our browse.ts processes — a
+  // stale browser.json plus OS pid reuse must never kill an innocent process.
+  if (isOurBrowserProcess(info.pid)) {
     try {
-      process.kill(info.pid, 0);
-      process.kill(info.pid, "SIGKILL");
+      process.kill(info.pid, "SIGTERM");
+      await sleep(2_000);
+      if (isOurBrowserProcess(info.pid)) process.kill(info.pid, "SIGKILL");
     } catch {
       /* already gone */
     }
-  } catch {
-    /* already gone */
+  } else {
+    console.log(`recorded pid ${info.pid} is not our browser (stale) — not signalling`);
   }
   clearBrowserInfo();
   console.log("stopped");

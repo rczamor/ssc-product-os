@@ -80,6 +80,21 @@ describe("runs endpoints", () => {
     const res = await runGet(jsonReq(`/api/runs/${id}`, "GET"), params(id));
     expect(res.status).toBe(404);
   });
+
+  it("404s (not 500) for a non-UUID id", async () => {
+    const res = await runGet(jsonReq("/api/runs/not-a-uuid", "GET"), params("not-a-uuid"));
+    expect(res.status).toBe(404);
+    const shot = await screenshotGet(
+      jsonReq("/api/screenshots/xyz", "GET"),
+      params("xyz"),
+    );
+    expect(shot.status).toBe(404);
+    const patch = await requestPatch(
+      jsonReq("/api/run-requests/nope", "PATCH", { status: "cancelled" }),
+      params("nope"),
+    );
+    expect(patch.status).toBe(404);
+  });
 });
 
 describe("screenshots endpoint", () => {

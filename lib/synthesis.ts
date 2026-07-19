@@ -1,19 +1,5 @@
-import type { Deliverable, KfdRow, PersonaSlug } from "./schemas/findings";
-import { PERSONA_LABELS } from "./schemas/findings";
-
-const VERDICT_LABELS: Record<KfdRow["verdict"], string> = {
-  kill: "Kill",
-  fix: "Fix",
-  double_down: "Double Down",
-};
-
-const ROOT_CAUSE_LABELS: Record<string, string> = {
-  ux: "UX",
-  data: "Data",
-  workflow: "Workflow",
-  packaging: "Packaging",
-  strategy: "Strategy",
-};
+import type { Deliverable, PersonaSlug } from "./schemas/findings";
+import { PERSONA_LABELS, ROOT_CAUSE_LABELS, VERDICT_LABELS } from "./schemas/findings";
 
 function personaList(personas: PersonaSlug[]): string {
   return personas.map((p) => PERSONA_LABELS[p]).join(", ");

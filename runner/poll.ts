@@ -12,7 +12,29 @@ import { getDb } from "../lib/db";
 
 loadEnv();
 
+/** Minutes after which a claimed-but-never-started request is requeued. */
+const STALE_CLAIM_MINUTES = 30;
+
+/**
+ * Requeue requests that were claimed but never advanced to 'running' (the
+ * worker session died before `run.ts create --request`), so a lost claim can't
+ * strand a request in 'claimed' forever.
+ */
+export async function requeueStaleClaims(): Promise<number> {
+  const db = await getDb();
+  const result = await db.execute(sql`
+    UPDATE run_requests
+    SET status = 'queued', claimed_at = NULL
+    WHERE status = 'claimed'
+      AND run_id IS NULL
+      AND claimed_at < now() - (${STALE_CLAIM_MINUTES} * interval '1 minute')
+    RETURNING id
+  `);
+  return ((result as unknown as { rows?: unknown[] }).rows ?? []).length;
+}
+
 export async function claimNext(): Promise<Record<string, unknown> | null> {
+  await requeueStaleClaims();
   const db = await getDb();
   const result = await db.execute(sql`
     UPDATE run_requests

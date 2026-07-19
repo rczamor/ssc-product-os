@@ -11,20 +11,25 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      // Hard navigation: the router's prefetch cache was populated while
-      // unauthenticated (login redirects), so a client-side push would
-      // replay the redirect instead of loading the dashboard.
-      window.location.assign("/");
-    } else {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (res.ok) {
+        // Hard navigation: the router's prefetch cache was populated while
+        // unauthenticated (login redirects), so a client-side push would
+        // replay the redirect instead of loading the dashboard.
+        window.location.assign("/");
+        return; // keep the button disabled through the navigation
+      }
       const body = await res.json().catch(() => null);
       setError(body?.error ?? "login failed");
+      setBusy(false);
+    } catch {
+      setError("Network error — could not reach the server. Please try again.");
+      setBusy(false);
     }
   }
 

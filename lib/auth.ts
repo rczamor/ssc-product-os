@@ -36,8 +36,17 @@ export function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// The session token is HMAC(secret, fixed context) — a deterministic value,
+// so cache it per secret rather than recomputing importKey+sign on every
+// middleware invocation (every page, API call, and inline screenshot).
+const tokenCache = new Map<string, string>();
+
 export async function makeSessionToken(secret: string): Promise<string> {
-  return hmacHex(secret, TOKEN_CONTEXT);
+  const cached = tokenCache.get(secret);
+  if (cached) return cached;
+  const token = await hmacHex(secret, TOKEN_CONTEXT);
+  tokenCache.set(secret, token);
+  return token;
 }
 
 export async function verifySessionToken(

@@ -4,33 +4,30 @@
  *
  *   npx tsx runner/judge-push.ts --run <id>
  */
-import fs from "fs";
 import path from "path";
 import { and, eq } from "drizzle-orm";
 import { loadEnv } from "./lib/env";
+import { arg as argOf } from "./lib/args";
+import { assertSafeSegment, readJsonFile } from "./lib/session";
 import { getDb } from "../lib/db";
 import { findings } from "../lib/db/schema";
 import { ScoresFileSchema } from "../lib/schemas/findings";
 import { personaSpanId, recordScore, flushLangfuse } from "./trace";
+import { runMain } from "./lib/zod";
 
 loadEnv();
 
-function arg(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
-
 async function main(): Promise<void> {
-  const runId = arg("--run");
+  const runId = argOf(process.argv.slice(2), "--run");
   if (!runId) throw new Error("usage: judge-push.ts --run <id>");
+  assertSafeSegment("run id", runId);
 
   const file = path.join(process.cwd(), "runs", runId, "scores.json");
-  if (!fs.existsSync(file)) throw new Error(`missing ${file}`);
-  const parsed = ScoresFileSchema.parse(JSON.parse(fs.readFileSync(file, "utf8")));
+  const parsed = ScoresFileSchema.parse(readJsonFile(file));
 
   const db = await getDb();
-  let matched = 0;
   let missed = 0;
+  const matchedScores: number[] = [];
   for (const s of parsed.scores) {
     const rows = await db
       .update(findings)
@@ -48,7 +45,7 @@ async function main(): Promise<void> {
       console.warn(`no finding matches ${s.persona}/${s.key}`);
       continue;
     }
-    matched++;
+    matchedScores.push((s.specificity + s.actionability) / 2);
     recordScore({
       runId,
       observationId: personaSpanId(runId, s.persona),
@@ -65,23 +62,25 @@ async function main(): Promise<void> {
     });
   }
 
-  const avg =
-    parsed.scores.reduce((acc, s) => acc + (s.specificity + s.actionability) / 2, 0) /
-    parsed.scores.length;
-  recordScore({
-    runId,
-    name: "deliverable_quality",
-    value: Number(avg.toFixed(2)),
-    comment: `mean of specificity+actionability across ${parsed.scores.length} findings`,
-  });
-
-  await flushLangfuse();
-  console.log(
-    `scored ${matched} findings (${missed} unmatched), run-level deliverable_quality=${avg.toFixed(2)}`,
-  );
+  // Average over MATCHED findings only — a stale/misspelled key must not skew
+  // (or fabricate) the run-level metric.
+  const matched = matchedScores.length;
+  if (matched > 0) {
+    const avg = matchedScores.reduce((a, b) => a + b, 0) / matched;
+    recordScore({
+      runId,
+      name: "deliverable_quality",
+      value: Number(avg.toFixed(2)),
+      comment: `mean of specificity+actionability across ${matched} matched findings`,
+    });
+    await flushLangfuse();
+    console.log(
+      `scored ${matched} findings (${missed} unmatched), run-level deliverable_quality=${avg.toFixed(2)}`,
+    );
+  } else {
+    await flushLangfuse();
+    console.log(`scored 0 findings (${missed} unmatched) — no deliverable_quality pushed`);
+  }
 }
 
-main().catch((e) => {
-  console.error(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
-  process.exit(1);
-});
+runMain(main);

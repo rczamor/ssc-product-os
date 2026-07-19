@@ -1,4 +1,10 @@
-import { PERSONA_LABELS, type PersonaSlug } from "@/lib/schemas/findings";
+import {
+  PERSONA_LABELS,
+  ROOT_CAUSE_LABELS,
+  VERDICT_LABELS,
+  type PersonaSlug,
+  type RootCause,
+} from "@/lib/schemas/findings";
 
 const STATUS_STYLES: Record<string, string> = {
   completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -37,23 +43,16 @@ export function VerdictBadge({ verdict }: { verdict: string }) {
     <span
       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${VERDICT_STYLES[verdict] ?? ""}`}
     >
-      {verdict === "double_down" ? "Double Down" : verdict === "kill" ? "Kill" : "Fix"}
+      {VERDICT_LABELS[verdict as keyof typeof VERDICT_LABELS] ?? verdict}
     </span>
   );
 }
 
 export function RootCauseBadge({ rootCause }: { rootCause: string | null }) {
   if (!rootCause) return null;
-  const labels: Record<string, string> = {
-    ux: "UX",
-    data: "Data",
-    workflow: "Workflow",
-    packaging: "Packaging",
-    strategy: "Strategy",
-  };
   return (
     <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
-      {labels[rootCause] ?? rootCause}
+      {ROOT_CAUSE_LABELS[rootCause as RootCause] ?? rootCause}
     </span>
   );
 }

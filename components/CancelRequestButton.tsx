@@ -9,13 +9,18 @@ export default function CancelRequestButton({ id }: { id: string }) {
 
   async function cancel() {
     setBusy(true);
-    await fetch(`/api/run-requests/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "cancelled" }),
-    });
-    setBusy(false);
-    router.refresh();
+    try {
+      await fetch(`/api/run-requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      router.refresh();
+    } catch {
+      /* leave the row as-is; a refresh will reflect real state */
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

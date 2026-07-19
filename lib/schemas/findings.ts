@@ -20,11 +20,25 @@ export const PERSONA_LABELS: Record<PersonaSlug, string> = {
 export const RootCauseSchema = z.enum(["ux", "data", "workflow", "packaging", "strategy"]);
 export type RootCause = z.infer<typeof RootCauseSchema>;
 
+export const ROOT_CAUSE_LABELS: Record<RootCause, string> = {
+  ux: "UX",
+  data: "Data",
+  workflow: "Workflow",
+  packaging: "Packaging",
+  strategy: "Strategy",
+};
+
 export const EffortSchema = z.enum(["S", "M", "L"]);
 export type Effort = z.infer<typeof EffortSchema>;
 
 export const KfdVerdictSchema = z.enum(["kill", "fix", "double_down"]);
 export type KfdVerdict = z.infer<typeof KfdVerdictSchema>;
+
+export const VERDICT_LABELS: Record<KfdVerdict, string> = {
+  kill: "Kill",
+  fix: "Fix",
+  double_down: "Double Down",
+};
 
 const FindingKey = z
   .string()

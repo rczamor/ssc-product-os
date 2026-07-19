@@ -67,8 +67,9 @@ npx tsx runner/journey.ts --run <id> --persona ciso
 
 1. Deploy this repo to Vercel (the app lives at the root; framework auto-detected).
 2. Create a Neon Postgres database (Vercel Marketplace → Neon, or neon.tech) and run migrations: `DATABASE_URL=… npm run db:migrate`.
-3. Set three environment variables on the Vercel project — `DATABASE_URL`, `ADMIN_PASSWORD`, `SESSION_SECRET` — and redeploy. Until `DATABASE_URL` is set the deployed app serves seeded demo data from in-process PGlite.
-4. Runner-side secrets (`SSC_EMAIL`, `SSC_PASSWORD`, `LANGFUSE_*`) stay in the Claude Code environment's `.env.local` only — the deployed app never sees them.
+3. Set three environment variables on the Vercel project — `DATABASE_URL`, `ADMIN_PASSWORD`, `SESSION_SECRET` — and redeploy. `DATABASE_URL` is what makes runs persist and be shared across requests; deploy it before real use.
+4. Optional demo-before-Neon: deploying with `PGLITE_SEED=1` and no `DATABASE_URL` renders seeded demo data, but that PGlite database is per-lambda and ephemeral (writes don't survive or share across instances) — it's for a first look only, not real runs.
+5. Runner-side secrets (`SSC_EMAIL`, `SSC_PASSWORD`, `LANGFUSE_*`) stay in the Claude Code environment's `.env.local` only — the deployed app never sees them. To drive the admin-UI queue → poll loop, the runner's `.env.local` also needs the same `DATABASE_URL` as the deployed app.
 
 ## The run-request loop
 
@@ -76,7 +77,7 @@ Admin UI **Queue run** → `run_requests` row (`queued`) → hourly Claude Code 
 
 ## Notes & limits
 
-- The browser bridge routes page traffic through Playwright's Node-side fetch when `HTTPS_PROXY` is set (TLS-inspecting proxies reset Chromium's ClientHello); drop the env var to browse directly.
-- PGlite mode is single-process: don't run the dev server and runner publishes simultaneously without `DATABASE_URL`.
+- The browser bridge routes page traffic through Playwright's Node-side fetch when `HTTPS_PROXY` is set (TLS-inspecting proxies reset Chromium's ClientHello); drop the env var to browse directly. The bridge covers HTTP(S) page requests, not WebSocket/service-worker traffic — fine for the SSC SPA's read-only journeys.
+- File-backed PGlite (`.pglite-data/`) lets the runner's separate processes share a database without `DATABASE_URL`, but a single PGlite dir is single-writer: don't run the dev server and a runner publish against it at the same time. Use `DATABASE_URL` (Neon) for concurrent access.
 - Screenshots are stored as JPEG bytes in Postgres (`bytea`); a `blob_url` column reserves a Vercel Blob upgrade path.
 - The demo login is a shared, company-provided evaluation account; agents are instructed to stay read-only (no invites, no edits, cancel out of side-effect flows).

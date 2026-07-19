@@ -6,6 +6,7 @@
  */
 import { eq } from "drizzle-orm";
 import { loadEnv } from "./lib/env";
+import { arg as argOf } from "./lib/args";
 import { getDb } from "../lib/db";
 import { personaEvaluations, runRequests, runs } from "../lib/db/schema";
 import { PERSONAS } from "../lib/schemas/findings";
@@ -13,13 +14,17 @@ import { ensureRunTrace, flushLangfuse } from "./trace";
 
 loadEnv();
 
-function arg(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
+const ARGV = process.argv.slice(2);
+const arg = (flag: string) => argOf(ARGV, flag);
+
+const RUN_STATUSES = ["running", "completed", "failed"] as const;
+const TRIGGERS = ["ui", "slash", "routine"] as const;
 
 async function create(): Promise<void> {
   const trigger = arg("--trigger") ?? "slash";
+  if (!(TRIGGERS as readonly string[]).includes(trigger)) {
+    throw new Error(`invalid --trigger: ${trigger} (one of ${TRIGGERS.join("|")})`);
+  }
   const requestId = arg("--request");
   const personas = (arg("--personas") ?? PERSONAS.join(","))
     .split(",")
@@ -51,31 +56,34 @@ async function finish(): Promise<void> {
   if (!runId) throw new Error("usage: finish --run <id> [--status ...] [--error ...]");
   const error = arg("--error");
   let status = arg("--status");
+  if (status && !(RUN_STATUSES as readonly string[]).includes(status)) {
+    throw new Error(`invalid --status: ${status} (one of ${RUN_STATUSES.join("|")})`);
+  }
 
   const db = await getDb();
   if (!status) {
+    // Completed only when every requested persona completed — a run where some
+    // personas failed is a partial failure, not a green run.
+    const [run] = await db.select({ personas: runs.personas }).from(runs).where(eq(runs.id, runId));
+    const requested = run?.personas ?? [];
     const evals = await db
-      .select({ status: personaEvaluations.status })
+      .select({ persona: personaEvaluations.persona, status: personaEvaluations.status })
       .from(personaEvaluations)
       .where(eq(personaEvaluations.runId, runId));
-    const completed = evals.filter((e) => e.status === "completed").length;
-    status = error ? "failed" : completed > 0 ? "completed" : "failed";
+    const completed = new Set(evals.filter((e) => e.status === "completed").map((e) => e.persona));
+    const allDone = requested.length > 0 && requested.every((p) => completed.has(p));
+    status = error || !allDone ? "failed" : "completed";
   }
 
   await db
     .update(runs)
     .set({ status, finishedAt: new Date(), error: error ?? null })
     .where(eq(runs.id, runId));
-  const requests = await db
-    .select({ id: runRequests.id })
-    .from(runRequests)
+  // One statement, not a per-row loop — atomic and can't strand requests.
+  await db
+    .update(runRequests)
+    .set({ status: status === "completed" ? "completed" : "failed" })
     .where(eq(runRequests.runId, runId));
-  for (const r of requests) {
-    await db
-      .update(runRequests)
-      .set({ status: status === "completed" ? "completed" : "failed" })
-      .where(eq(runRequests.id, r.id));
-  }
   await flushLangfuse();
   console.log(`run ${runId} → ${status}`);
 }

@@ -18,19 +18,24 @@ export default function TriggerRunButton() {
   async function submit() {
     setBusy(true);
     setMessage(null);
-    const res = await fetch("/api/run-requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ personas: selected, note: note || undefined }),
-    });
-    setBusy(false);
-    if (res.ok) {
-      setMessage("Queued. The agent worker picks requests up on its next poll (≤1h), or run /platform-review in a Claude Code session for an immediate run.");
-      setNote("");
-      router.refresh();
-    } else {
-      const body = await res.json().catch(() => null);
-      setMessage(`Failed: ${body?.error ?? res.status}`);
+    try {
+      const res = await fetch("/api/run-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ personas: selected, note: note || undefined }),
+      });
+      if (res.ok) {
+        setMessage("Queued. The agent worker picks requests up on its next poll (≤1h), or run /platform-review in a Claude Code session for an immediate run.");
+        setNote("");
+        router.refresh();
+      } else {
+        const body = await res.json().catch(() => null);
+        setMessage(`Failed: ${body?.error ?? res.status}`);
+      }
+    } catch {
+      setMessage("Network error — could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
     }
   }
 

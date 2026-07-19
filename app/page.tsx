@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { getDb, isPersistentDb } from "@/lib/db";
-import { deliverables, findings, runRequests, runs } from "@/lib/db/schema";
+import { runRequests } from "@/lib/db/schema";
+import { listRunsWithCounts } from "@/lib/db/queries";
+import { formatTimestamp } from "@/lib/validation";
 import { StatusBadge, PersonaBadge } from "@/components/Badges";
 import TriggerRunButton from "@/components/TriggerRunButton";
 import CancelRequestButton from "@/components/CancelRequestButton";
@@ -10,34 +12,12 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const db = await getDb();
-  const runRows = await db.select().from(runs).orderBy(desc(runs.startedAt)).limit(25);
+  const enriched = await listRunsWithCounts(25);
   const requests = await db
     .select()
     .from(runRequests)
     .orderBy(desc(runRequests.createdAt))
     .limit(10);
-
-  const enriched = await Promise.all(
-    runRows.map(async (run) => {
-      const [counts] = await db
-        .select({
-          likes: sql<number>`count(*) filter (where ${findings.kind} = 'like')`,
-          dislikes: sql<number>`count(*) filter (where ${findings.kind} = 'dislike')`,
-        })
-        .from(findings)
-        .where(eq(findings.runId, run.id));
-      const [d] = await db
-        .select({ id: deliverables.id })
-        .from(deliverables)
-        .where(eq(deliverables.runId, run.id));
-      return {
-        ...run,
-        likes: Number(counts?.likes ?? 0),
-        dislikes: Number(counts?.dislikes ?? 0),
-        hasDeliverable: Boolean(d),
-      };
-    }),
-  );
 
   return (
     <div className="space-y-6">
@@ -68,14 +48,16 @@ export default async function DashboardPage() {
                 </span>
                 <span className="text-slate-500">{r.note}</span>
                 <span className="ml-auto text-xs text-slate-400">
-                  {r.createdAt?.toISOString().slice(0, 16).replace("T", " ")} · {r.requestedBy}
+                  {formatTimestamp(r.createdAt)} · {r.requestedBy}
                 </span>
                 {r.runId && (
                   <Link href={`/runs/${r.runId}`} className="text-xs text-indigo-600 hover:underline">
                     run →
                   </Link>
                 )}
-                {r.status === "queued" && <CancelRequestButton id={r.id} />}
+                {(r.status === "queued" || r.status === "claimed") && (
+                  <CancelRequestButton id={r.id} />
+                )}
               </li>
             ))}
           </ul>
@@ -108,9 +90,7 @@ export default async function DashboardPage() {
             <tbody className="divide-y divide-slate-100">
               {enriched.map((run) => (
                 <tr key={run.id} className="hover:bg-slate-50">
-                  <td className="px-5 py-3 text-slate-600">
-                    {run.startedAt?.toISOString().slice(0, 16).replace("T", " ")}
-                  </td>
+                  <td className="px-5 py-3 text-slate-600">{formatTimestamp(run.startedAt)}</td>
                   <td className="px-2 py-3">
                     <StatusBadge status={run.status} />
                   </td>
@@ -122,8 +102,8 @@ export default async function DashboardPage() {
                       ))}
                     </span>
                   </td>
-                  <td className="px-2 py-3 text-emerald-700">{run.likes}</td>
-                  <td className="px-2 py-3 text-red-700">{run.dislikes}</td>
+                  <td className="px-2 py-3 text-emerald-700">{run.likeCount}</td>
+                  <td className="px-2 py-3 text-red-700">{run.dislikeCount}</td>
                   <td className="px-2 py-3">{run.hasDeliverable ? "✓" : "—"}</td>
                   <td className="px-2 py-3">
                     <Link

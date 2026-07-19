@@ -10,7 +10,8 @@
 import fs from "fs";
 import path from "path";
 import { loadEnv } from "./lib/env";
-import { attach, LOGIN_URL_RE, runDir, sleep } from "./lib/session";
+import { arg as argOf } from "./lib/args";
+import { assertSafeSegment, attach, isLoginWall, readJsonFile, runDir, sleep } from "./lib/session";
 import { recordStopSpan, startPersonaSpan, flushLangfuse } from "./trace";
 
 loadEnv();
@@ -28,19 +29,17 @@ interface Journey {
   stops: JourneyStop[];
 }
 
-function arg(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
-
 async function main(): Promise<void> {
-  const runId = arg("--run");
-  const persona = arg("--persona");
+  const argv = process.argv.slice(2);
+  const runId = argOf(argv, "--run");
+  const persona = argOf(argv, "--persona");
   if (!runId || !persona) throw new Error("usage: journey.ts --run <id> --persona <p>");
+  assertSafeSegment("run id", runId);
+  assertSafeSegment("persona", persona);
 
   const journeyPath = path.join(process.cwd(), "runner", "journeys", `${persona}.json`);
   if (!fs.existsSync(journeyPath)) throw new Error(`no journey file: ${journeyPath}`);
-  const journey = JSON.parse(fs.readFileSync(journeyPath, "utf8")) as Journey;
+  const journey = readJsonFile<Journey>(journeyPath);
 
   const dir = runDir(runId, persona);
   const { browser, page } = await attach();
@@ -63,7 +62,7 @@ async function main(): Promise<void> {
         }
         await sleep(6_000);
 
-        if (LOGIN_URL_RE.test(page.url()) || /log ?in/i.test(await page.title())) {
+        if (await isLoginWall(page)) {
           status = "session-expired";
         } else {
           const shotFile = path.join(dir, `${stop.label}.jpg`);

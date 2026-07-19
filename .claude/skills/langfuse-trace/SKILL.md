@@ -28,10 +28,17 @@ Who writes what: `run.ts create` → trace · `journey.ts` → persona/stop span
 `publish.ts` → generations · `judge-push.ts` → scores. Scripts flush before
 exit (`flushAsync`) — short-lived processes lose unflushed events otherwise.
 
+Note: traces/spans/generations use deterministic ids and UPSERT on re-run, but
+Langfuse scores are append-only. Re-running `judge-push.ts` for the same run
+therefore adds a second set of scores rather than replacing them — only re-run
+it when the prior push didn't land, and prefer regenerating from a corrected
+scores.json on a fresh run id.
+
 ## Verify a run's trace
 
 Open `https://cloud.langfuse.com` → project → Traces → search the run id
-(the admin UI links it per run). Programmatic check:
+(the admin UI shows this id, equal to the trace id, on each run's detail page).
+Programmatic check:
 
 ```bash
 set -a; . ./.env.local; set +a; npx tsx -e "

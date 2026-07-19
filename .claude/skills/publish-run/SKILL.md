@@ -21,7 +21,11 @@ All commands from the repo root with the env prefix
 Notes:
 - Publishing is idempotent — republishing a persona replaces its rows.
 - `SCHEMA INVALID` output lists exact zod paths; hand them back to the agent.
-- Without `DATABASE_URL`, data lands in local PGlite (`.pglite-data/`) — the
-  same commands re-run against Neon once `DATABASE_URL` is set.
+- Without `DATABASE_URL`, data lands in local file-backed PGlite at
+  `PGLITE_DATA_DIR` (default `.pglite-data/`, set in `.env.example`) so the
+  runner's separate processes share one database; the same commands re-run
+  against Neon once `DATABASE_URL` is set. If `PGLITE_DATA_DIR=""` the DB is
+  in-memory and per-process — publish will FK-fail because the run row from a
+  prior process is gone, so keep the default for real runs.
 - Screenshot bytes are stored in Postgres; the admin UI serves them at
   `/api/screenshots/<id>`.

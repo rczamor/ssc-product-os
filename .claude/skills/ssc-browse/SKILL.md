@@ -30,7 +30,7 @@ before Node starts).
 | `click "<selector>"` | Click. CSS or Playwright selectors (`text=Portfolios`, `button:has-text("Export")`). Prints resulting url/title. |
 | `fill "<selector>" "<text>"` | Fill an input. |
 | `press <key>` | Keyboard key (Enter, Escape, ArrowDown…). |
-| `screenshot --run <id> --persona <p> --label <slug> [--full]` | JPEG to `runs/<id>/<p>/<slug>.jpg` and records it in `adhoc.json` (published to the DB later). Label = lowercase slug. |
+| `screenshot --run <id> --persona <p> --label <slug> [--full]` | JPEG to `runs/<id>/<p>/<slug>.jpg` and records it in `adhoc.json` (published to the DB later). `--persona` defaults to `shared` (still published); pass the evaluating persona when the shot is persona-specific. Label = lowercase slug. |
 | `eval "<js>"` | Evaluate a JS expression in the page, print JSON. Good for extracting counts/links: `eval "document.querySelectorAll('table tbody tr').length"`. |
 | `stop` | Shut the browser down (end of run only). |
 
@@ -57,4 +57,6 @@ If `login` prints `logged-in: no` or a command prints `SESSION_EXPIRED`:
 1. `goto https://platform.securityscorecard.io/` then `snapshot` — identify the form.
 2. `fill 'input[type="email"]' "$SSC_EMAIL"` style manual steps (use env var interpolation in your shell so the value itself is never in your transcript), `fill 'input[type="password"]' …`, then `click 'button[type="submit"]'`.
 3. Wait ~20s, `snapshot`; success = app chrome (nav tabs) instead of the form.
-4. Still failing → capture `screenshot --label login-blocked`, report the run as blocked; do NOT retry more than twice (lockout risk).
+4. Still failing → capture `screenshot --run <id> --persona shared --label login-blocked` (--run is required), report the run as blocked; do NOT retry more than twice (lockout risk).
+
+Note: screenshots taken with `--persona shared` (or with no --persona, which defaults to shared) are still published — publish.ts pulls the shared dir in for every persona — but prefer the persona you're evaluating as when the shot is persona-specific.

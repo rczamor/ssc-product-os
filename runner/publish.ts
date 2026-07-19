@@ -19,31 +19,22 @@ import fs from "fs";
 import path from "path";
 import { and, eq } from "drizzle-orm";
 import { loadEnv } from "./lib/env";
+import { arg as argOf, hasFlag as hasFlagOf } from "./lib/args";
+import { assertSafeSegment, readJsonFile, resolveInRuns } from "./lib/session";
 import { getDb } from "../lib/db";
 import { deliverables, findings, personaEvaluations, screenshots } from "../lib/db/schema";
 import { DeliverableSchema, PersonaOutputSchema } from "../lib/schemas/findings";
 import { renderDeliverableMarkdown } from "../lib/synthesis";
 import { recordGeneration, flushLangfuse } from "./trace";
+import { runMain } from "./lib/zod";
 
 loadEnv();
 
-function arg(flag: string): string | undefined {
-  const i = process.argv.indexOf(flag);
-  return i >= 0 ? process.argv[i + 1] : undefined;
-}
+const ARGV = process.argv.slice(2);
+const arg = (flag: string) => argOf(ARGV, flag);
+const hasFlag = (flag: string) => hasFlagOf(ARGV, flag);
 
-function hasFlag(flag: string): boolean {
-  return process.argv.includes(flag);
-}
-
-function readJson(file: string): unknown {
-  if (!fs.existsSync(file)) throw new Error(`missing file: ${file}`);
-  try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (e) {
-    throw new Error(`invalid JSON in ${file}: ${e instanceof Error ? e.message : e}`);
-  }
-}
+const readJson = readJsonFile;
 
 interface ShotEntry {
   label: string;
@@ -55,18 +46,31 @@ interface ShotEntry {
   status?: string;
 }
 
+/**
+ * Collect a persona's screenshots from its own dir plus the shared dir (shots
+ * taken without --persona land in runs/<id>/shared/ — without this they would
+ * never be published, so findings citing them would lose their evidence).
+ * Every `file` is resolved under runs/ so a crafted path can't escape.
+ */
 function collectShots(runId: string, persona: string): ShotEntry[] {
-  const dir = path.join(process.cwd(), "runs", runId, persona);
   const entries: ShotEntry[] = [];
-  for (const name of ["journey.json", "adhoc.json"]) {
-    const file = path.join(dir, name);
-    if (!fs.existsSync(file)) continue;
-    const arr = JSON.parse(fs.readFileSync(file, "utf8")) as ShotEntry[];
-    entries.push(...arr);
+  for (const dirName of [persona, "shared"]) {
+    const dir = path.join(process.cwd(), "runs", runId, dirName);
+    for (const name of ["journey.json", "adhoc.json"]) {
+      const file = path.join(dir, name);
+      if (!fs.existsSync(file)) continue;
+      entries.push(...readJsonFile<ShotEntry[]>(file));
+    }
   }
-  return entries.filter(
-    (e) => e.label && e.file && fs.existsSync(path.join(process.cwd(), e.file)),
-  );
+  return entries.filter((e) => {
+    if (!e.label || !e.file) return false;
+    try {
+      return fs.existsSync(resolveInRuns(e.file));
+    } catch {
+      // Path escapes runs/ — drop it rather than read outside the tree.
+      return false;
+    }
+  });
 }
 
 async function publishPersona(runId: string, persona: string): Promise<void> {
@@ -81,7 +85,7 @@ async function publishPersona(runId: string, persona: string): Promise<void> {
   // Screenshots first (idempotent on the (run, persona, label) unique index).
   const labelToId = new Map<string, string>();
   for (const shot of collectShots(runId, persona)) {
-    const bytes = fs.readFileSync(path.join(process.cwd(), shot.file));
+    const bytes = fs.readFileSync(resolveInRuns(shot.file));
     const [row] = await db
       .insert(screenshots)
       .values({
@@ -103,9 +107,10 @@ async function publishPersona(runId: string, persona: string): Promise<void> {
 
   const journeyFile = path.join(dir, "journey.json");
   const journey = fs.existsSync(journeyFile)
-    ? (JSON.parse(fs.readFileSync(journeyFile, "utf8")) as Array<Record<string, unknown>>).map(
-        (j) => ({ ...j, screenshotId: labelToId.get(String(j.label)) ?? null }),
-      )
+    ? readJsonFile<Array<Record<string, unknown>>>(journeyFile).map((j) => ({
+        ...j,
+        screenshotId: labelToId.get(String(j.label)) ?? null,
+      }))
     : [];
 
   // Republish is idempotent: replace this persona's rows wholesale.
@@ -207,7 +212,9 @@ async function markFailed(runId: string, persona: string): Promise<void> {
 async function main(): Promise<void> {
   const runId = arg("--run");
   if (!runId) throw new Error("--run <id> is required");
+  assertSafeSegment("run id", runId);
   const persona = arg("--persona");
+  if (persona) assertSafeSegment("persona", persona);
 
   if (hasFlag("--deliverable")) {
     if (hasFlag("--validate-only")) {
@@ -233,14 +240,4 @@ async function main(): Promise<void> {
   return publishPersona(runId, persona);
 }
 
-main().catch((e) => {
-  if (e && typeof e === "object" && "issues" in (e as Record<string, unknown>)) {
-    console.error("SCHEMA INVALID — fix these issues in the JSON and retry:");
-    for (const issue of (e as { issues: Array<{ path: unknown[]; message: string }> }).issues) {
-      console.error(`  - ${issue.path.join(".")}: ${issue.message}`);
-    }
-  } else {
-    console.error(`ERROR: ${e instanceof Error ? e.message : String(e)}`);
-  }
-  process.exit(1);
-});
+runMain(main);

@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRunDetail } from "@/lib/db/queries";
+import { computeAccuracy } from "@/lib/reviews";
 import { PERSONA_LABELS, type PersonaSlug } from "@/lib/schemas/findings";
 import { formatTimestamp, isUuid } from "@/lib/validation";
 import { PersonaBadge, RootCauseBadge, StatusBadge, VerdictBadge } from "@/components/Badges";
+import AccuracyStrip from "@/components/AccuracyStrip";
+import ApproveMatrix from "@/components/ApproveMatrix";
+import ReviewControls from "@/components/ReviewControls";
+import AddHumanFinding from "@/components/AddHumanFinding";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +41,37 @@ export default async function RunDetailPage({
   if (!isUuid(id)) notFound();
   const detail = await getRunDetail(id);
   if (!detail) notFound();
-  const { run, personaEvaluations: evals, findings: findingRows, deliverable, screenshots: shots } =
-    detail;
+  const {
+    run,
+    personaEvaluations: evals,
+    findings: findingRows,
+    deliverable,
+    screenshots: shots,
+    reviews: reviewRows,
+    approval,
+  } = detail;
+
+  // Human vote lookup keyed by persona:key, and the accuracy-strip math.
+  const humanReviews = new Map(
+    reviewRows
+      .filter((r) => r.reviewerType === "human")
+      .map((r) => [`${r.persona}:${r.findingKey}`, r]),
+  );
+  const accuracy = computeAccuracy(
+    findingRows.map((f) => ({
+      key: f.key,
+      persona: f.persona,
+      origin: f.origin,
+      specificityScore: f.specificityScore,
+      actionabilityScore: f.actionabilityScore,
+    })),
+    reviewRows.map((r) => ({
+      findingKey: r.findingKey,
+      persona: r.persona,
+      reviewerType: r.reviewerType,
+      verdict: r.verdict,
+    })),
+  );
 
   return (
     <div className="space-y-8">
@@ -58,9 +92,21 @@ export default async function RunDetailPage({
         {run.error && <span className="text-sm text-red-600">{run.error}</span>}
       </div>
 
+      <AccuracyStrip accuracy={accuracy} />
+
       {deliverable && (
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-base font-semibold">Prompt-1 Deliverable</h2>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">Prompt-1 Deliverable</h2>
+          </div>
+          <div className="mt-4">
+            <ApproveMatrix
+              runId={run.id}
+              approved={Boolean(approval)}
+              approvedBy={approval?.approvedBy ?? null}
+              approvedAt={approval ? approval.approvedAt?.toString() ?? null : null}
+            />
+          </div>
 
           <div className="mt-4 grid gap-6 md:grid-cols-2">
             <div>
@@ -187,15 +233,27 @@ export default async function RunDetailPage({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="text-sm font-medium">{f.title}</h3>
-                    <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        f.kind === "like"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {f.kind}
-                      {f.severity ? ` · S${f.severity}` : ""}
+                    <span className="flex shrink-0 items-center gap-1">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          f.origin === "human"
+                            ? "bg-indigo-100 text-indigo-700"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                        title={f.origin === "human" ? "Added by a human reviewer" : "Produced by an agent"}
+                      >
+                        {f.origin === "human" ? "Human" : "Agent"}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                          f.kind === "like"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {f.kind}
+                        {f.severity ? ` · S${f.severity}` : ""}
+                      </span>
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{f.detail}</p>
@@ -215,8 +273,24 @@ export default async function RunDetailPage({
                       </span>
                     )}
                   </div>
+                  <ReviewControls
+                    runId={run.id}
+                    findingKey={f.key}
+                    persona={f.persona}
+                    initialVerdict={
+                      (humanReviews.get(`${f.persona}:${f.key}`)?.verdict as
+                        | "up"
+                        | "down"
+                        | undefined) ?? null
+                    }
+                    initialComment={humanReviews.get(`${f.persona}:${f.key}`)?.comment ?? null}
+                  />
                 </article>
               ))}
+            </div>
+
+            <div className="mt-4">
+              <AddHumanFinding runId={run.id} fixedPersona={persona} />
             </div>
 
             {personaShots.length > 0 && (

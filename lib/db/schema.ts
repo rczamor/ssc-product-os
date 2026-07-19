@@ -93,6 +93,8 @@ export const findings = pgTable(
     effort: text("effort"),
     firstAction: text("first_action"),
     severity: integer("severity"),
+    /** agent | human — who authored this finding (agent runs vs. reviewer adds). */
+    origin: text("origin").notNull().default("agent"),
     screenshotIds: jsonb("screenshot_ids").$type<string[]>().notNull().default([]),
     /** Full finding object as validated. */
     raw: jsonb("raw").notNull(),
@@ -178,3 +180,56 @@ export const feedbackItems = pgTable(
     uniqueIndex("feedback_items_dedupe_idx").on(t.dedupeKey),
   ],
 );
+
+/**
+ * Human/agent reviews of individual findings (Phase 2). A review is an up/down
+ * verdict + optional comment on a finding, attributed to a reviewer. Human votes
+ * upsert on the unique key so a reviewer can change their mind; the judge's
+ * scores are surfaced as the agent review of each finding (from the findings
+ * columns), so this table is primarily the human layer.
+ */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    runId: uuid("run_id")
+      .notNull()
+      .references(() => runs.id, { onDelete: "cascade" }),
+    /** The finding this review targets (findings.key, stable within run+persona). */
+    findingKey: text("finding_key").notNull(),
+    persona: text("persona").notNull(),
+    /** human | agent */
+    reviewerType: text("reviewer_type").notNull(),
+    reviewerName: text("reviewer_name").notNull().default("admin"),
+    /** up | down */
+    verdict: text("verdict").notNull(),
+    comment: text("comment"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("reviews_run_idx").on(t.runId),
+    // One vote per (finding, reviewer): re-voting upserts rather than piling up.
+    uniqueIndex("reviews_unique_idx").on(
+      t.runId,
+      t.findingKey,
+      t.persona,
+      t.reviewerType,
+      t.reviewerName,
+    ),
+  ],
+);
+
+/**
+ * The human approval gate (Phase 2). A row here means a human has approved the
+ * run's matrix; it is the SOLE trigger for the Phase-3 matrix→Linear push.
+ * One approval per run (unique run_id) — approving is idempotent.
+ */
+export const approvals = pgTable("approvals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  runId: uuid("run_id")
+    .notNull()
+    .unique()
+    .references(() => runs.id, { onDelete: "cascade" }),
+  approvedBy: text("approved_by").notNull(),
+  approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
+});

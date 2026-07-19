@@ -29,13 +29,31 @@ beforeAll(async () => {
 
 describe("POST /api/auth/login", () => {
   it("rejects a wrong password", async () => {
-    const res = await loginPost(jsonReq("/api/auth/login", "POST", { password: "wrong" }));
+    const res = await loginPost(
+      jsonReq("/api/auth/login", "POST", {
+        email: process.env.ADMIN_EMAIL,
+        password: "wrong",
+      }),
+    );
     expect(res.status).toBe(401);
   });
 
-  it("sets the session cookie for the right password", async () => {
+  it("rejects a wrong email even with the right password", async () => {
     const res = await loginPost(
-      jsonReq("/api/auth/login", "POST", { password: process.env.ADMIN_PASSWORD }),
+      jsonReq("/api/auth/login", "POST", {
+        email: "attacker@example.com",
+        password: process.env.ADMIN_PASSWORD,
+      }),
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("sets the session cookie for the right email + password", async () => {
+    const res = await loginPost(
+      jsonReq("/api/auth/login", "POST", {
+        email: (process.env.ADMIN_EMAIL ?? "").toUpperCase(), // case-insensitive
+        password: process.env.ADMIN_PASSWORD,
+      }),
     );
     expect(res.status).toBe(200);
     const cookie = res.headers.get("set-cookie") ?? "";

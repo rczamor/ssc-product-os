@@ -23,6 +23,7 @@ export default defineConfig({
       // against fresh in-memory, seeded data.
       PGLITE_DATA_DIR: "",
       PGLITE_SEED: "1",
+      ADMIN_EMAIL: "admin@example.com",
       ADMIN_PASSWORD: "test-password",
       SESSION_SECRET: "test-session-secret",
     },

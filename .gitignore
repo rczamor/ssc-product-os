@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# local env files — secrets live here, never commit
+.env
+.env.*
+!.env.example
+
+# run artifacts (screenshots, snapshots, findings) — local only
+runs/
+
+# local databases
+.pglite-data/
+
+# testing
+test-results/
+playwright-report/
+coverage/
+
+# misc
+*.tsbuildinfo
+.DS_Store
+.vercel/

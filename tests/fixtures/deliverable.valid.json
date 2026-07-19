@@ -1,0 +1,126 @@
+{
+  "likes": [
+    {
+      "title": "Board-legible A-F grading system",
+      "detail": "The letter grade translates technical posture into an executive-ready format that works across every persona without a methodology lecture.",
+      "personas": ["ciso", "gtm_cs"],
+      "sourceFindingKeys": ["letter-grade-orientation"]
+    },
+    {
+      "title": "Portfolio-scale vendor triage",
+      "detail": "Portfolio views make continuous monitoring of thousands of vendors a one-screen weekly workflow with grade distribution at a glance.",
+      "personas": ["vrm"],
+      "sourceFindingKeys": ["portfolio-triage"]
+    },
+    {
+      "title": "Instant prospect scorecards",
+      "detail": "Any company's scorecard is one URL away, which makes the first sales meeting demo effectively zero-setup and data-anchored.",
+      "personas": ["gtm_cs"],
+      "sourceFindingKeys": ["prospect-scorecard-hook"]
+    }
+  ],
+  "dislikes": [
+    {
+      "title": "Issues list lacks score-driver prioritization",
+      "detail": "The issues view lists findings without ranking by score impact, so building a remediation plan requires manual triage in a spreadsheet.",
+      "personas": ["ciso", "vrm"],
+      "customerPain": "I cannot tell which three fixes would actually move my score this quarter.",
+      "rootCause": "workflow",
+      "effort": "M",
+      "firstAction": "Prototype a score-impact-ranked issues view.",
+      "sourceFindingKeys": ["issues-list-no-prioritization"]
+    },
+    {
+      "title": "Scorecard body loads slowly during live moments",
+      "detail": "Header renders fast but the overview body sits on a loading spinner long enough to derail a screen-share.",
+      "personas": ["ciso", "gtm_cs"],
+      "customerPain": "When I screen-share this in an exec meeting the page is blank while it loads.",
+      "rootCause": "ux",
+      "effort": "M",
+      "firstAction": "Instrument p95 time-to-content and add skeleton states.",
+      "sourceFindingKeys": ["slow-artifact-loading"]
+    },
+    {
+      "title": "Report Center outputs are not audit-committee shaped",
+      "detail": "Many export types but no artifact matching what an audit committee expects (trend, benchmark, dollars-at-risk, SLA table) in one place.",
+      "personas": ["ciso"],
+      "customerPain": "I still rebuild the board deck by hand from screenshots and CSVs.",
+      "rootCause": "packaging",
+      "effort": "L",
+      "firstAction": "Interview five CISO customers about board-deck assembly.",
+      "sourceFindingKeys": ["report-center-generic"]
+    },
+    {
+      "title": "Questionnaires feel siloed from ratings",
+      "detail": "Questionnaire responses and the outside-in rating live on separate surfaces with no combined vendor risk view.",
+      "personas": ["vrm"],
+      "customerPain": "I reconcile questionnaire answers against scores by hand.",
+      "rootCause": "workflow",
+      "effort": "L",
+      "firstAction": "Prototype a unified vendor risk summary combining both signals.",
+      "sourceFindingKeys": ["questionnaire-rating-silo"]
+    },
+    {
+      "title": "Score dispute flow is hard to walk customers through",
+      "detail": "Multi-step resolution path with slow feedback turns QBRs into support calls and erodes trust in the score itself.",
+      "personas": ["gtm_cs", "ciso"],
+      "customerPain": "My QBR derails into 'why is this IP attributed to us' for 30 minutes.",
+      "rootCause": "workflow",
+      "effort": "M",
+      "firstAction": "Map the dispute journey and count steps to resolution.",
+      "sourceFindingKeys": ["dispute-flow-friction"]
+    }
+  ],
+  "kfd": [
+    {
+      "item": "Score-impact ranking for the issues list",
+      "verdict": "fix",
+      "customerPain": "Issue lists without ranking leave teams guessing what to fix first.",
+      "personas": ["ciso", "vrm"],
+      "rootCause": "workflow",
+      "effort": "M",
+      "firstAction": "Prototype a score-impact-ranked issues view.",
+      "sourceFindingKeys": ["issues-list-no-prioritization"]
+    },
+    {
+      "item": "Scorecard overview load performance",
+      "verdict": "fix",
+      "customerPain": "Blank page during live screen-shares undermines exec briefings.",
+      "personas": ["ciso", "gtm_cs"],
+      "rootCause": "ux",
+      "effort": "M",
+      "firstAction": "Instrument p95 time-to-content and add skeleton states.",
+      "sourceFindingKeys": ["slow-artifact-loading"]
+    },
+    {
+      "item": "Board-pack report template",
+      "verdict": "fix",
+      "customerPain": "CISOs rebuild board decks manually from platform screenshots.",
+      "personas": ["ciso"],
+      "rootCause": "packaging",
+      "effort": "L",
+      "firstAction": "Interview five CISO customers about board-deck assembly.",
+      "sourceFindingKeys": ["report-center-generic"]
+    },
+    {
+      "item": "A-F letter grade as the universal language",
+      "verdict": "double_down",
+      "customerPain": "The one artifact every stakeholder already understands; deepen it rather than dilute it.",
+      "personas": ["ciso", "vrm", "gtm_cs"],
+      "rootCause": "strategy",
+      "effort": "S",
+      "firstAction": "Ship grade-trend context on every surface where the grade appears.",
+      "sourceFindingKeys": ["letter-grade-orientation"]
+    },
+    {
+      "item": "Legacy export formats nobody uses",
+      "verdict": "kill",
+      "customerPain": "A cluttered export menu slows every report workflow while maintaining dead formats.",
+      "personas": ["gtm_cs"],
+      "rootCause": "strategy",
+      "effort": "S",
+      "firstAction": "Pull export-usage analytics and deprecate the bottom quartile.",
+      "sourceFindingKeys": ["report-center-generic"]
+    }
+  ]
+}

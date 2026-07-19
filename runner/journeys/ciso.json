@@ -1,0 +1,41 @@
+{
+  "persona": "ciso",
+  "description": "Self-monitoring lens: does this platform help me defend my rating, brief my board, and prioritize remediation?",
+  "stops": [
+    {
+      "label": "home-dashboard",
+      "url": "https://platform.securityscorecard.io/#/home",
+      "note": "First impression: does the landing view orient a security executive or a vendor analyst?"
+    },
+    {
+      "label": "my-scorecard",
+      "url": "https://platform.securityscorecard.io/#/scorecard/securityscorecardtech.com",
+      "note": "The company's own scorecard: grade legibility, factor breakdown, trust in the score, time-to-'so what'."
+    },
+    {
+      "label": "score-issues",
+      "url": "https://platform.securityscorecard.io/#/scorecard/securityscorecardtech.com/issues",
+      "note": "Issue list: can I tell which findings actually drive my score and which three things to fix first?"
+    },
+    {
+      "label": "risk-quantification",
+      "url": "https://platform.securityscorecard.io/#/scorecard/my/financial-impact/risk-assessment",
+      "note": "Financial impact / risk quantification: is this board-credible dollars-at-risk framing or a black box?"
+    },
+    {
+      "label": "report-center",
+      "url": "https://platform.securityscorecard.io/#/report-center",
+      "note": "Board reporting: how close to 'attach to the board deck' is the output? What's missing for an audit committee?"
+    },
+    {
+      "label": "rules-alerts",
+      "url": "https://platform.securityscorecard.io/#/rules",
+      "note": "Alerting/rule builder: can I control noise? Would this create alert fatigue for my team?"
+    },
+    {
+      "label": "attack-surface",
+      "url": "https://platform.securityscorecard.io/#/asi",
+      "note": "Attack Surface Intelligence: is the asset attribution accurate and actionable, or a source of disputes?"
+    }
+  ]
+}

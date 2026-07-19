@@ -1,0 +1,40 @@
+{
+  "persona": "ciso",
+  "summary": "Too short.",
+  "likes": [
+    {
+      "key": "ok",
+      "kind": "like",
+      "title": "Nice",
+      "detail": "Fine.",
+      "whyItWorks": "Good.",
+      "jtbd": "?"
+    }
+  ],
+  "dislikes": [
+    {
+      "key": "bad-thing",
+      "kind": "dislike",
+      "title": "UX is bad",
+      "detail": "It's bad.",
+      "customerPain": "Pain.",
+      "jtbd": "Stuff",
+      "rootCause": "vibes",
+      "effort": "XL",
+      "firstAction": "Fix it",
+      "severity": 9
+    },
+    {
+      "key": "bad-thing",
+      "kind": "dislike",
+      "title": "Duplicate key entry",
+      "detail": "This entry duplicates the key of the previous one which must be rejected.",
+      "customerPain": "Duplicate keys break score joins later.",
+      "jtbd": "Data integrity",
+      "rootCause": "data",
+      "effort": "S",
+      "firstAction": "Deduplicate keys",
+      "severity": 2
+    }
+  ]
+}

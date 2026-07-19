@@ -1,0 +1,41 @@
+{
+  "persona": "gtm_cs",
+  "description": "Customer-facing lens: does the product make me look good live in front of customers, drive adoption, and prevent churn?",
+  "stops": [
+    {
+      "label": "prospect-scorecard",
+      "url": "https://platform.securityscorecard.io/#/scorecard/tesla.com",
+      "note": "The 'pull up your scorecard' demo moment: is this impressive in the first 60 seconds, or does it invite an accuracy fight?"
+    },
+    {
+      "label": "prospect-scorecard-2",
+      "url": "https://platform.securityscorecard.io/#/scorecard/airbnb.com",
+      "note": "Second prospect view: consistency of the wow-factor across companies."
+    },
+    {
+      "label": "report-center",
+      "url": "https://platform.securityscorecard.io/#/report-center",
+      "note": "Exports a CSM sends after a call: are they branded, current, and QBR-ready without manual deck work?"
+    },
+    {
+      "label": "home-vendor-engagement",
+      "url": "https://platform.securityscorecard.io/#/home",
+      "note": "Vendor Engagement tab: what the customer's vendors experience — invite flows, responsiveness."
+    },
+    {
+      "label": "marketplace",
+      "url": "https://platform.securityscorecard.io/#/marketplace",
+      "note": "Integrations: how easily does this land inside a customer's existing stack (Jira, ServiceNow, Slack)?"
+    },
+    {
+      "label": "verified-assessments",
+      "url": "https://platform.securityscorecard.io/#/scorecard/securityscorecardtech.com/verified-assessment/dashboard",
+      "note": "Early Access surface: how are new features introduced? Would I demo this confidently?"
+    },
+    {
+      "label": "notifications",
+      "url": "https://platform.securityscorecard.io/#/notifications/standard",
+      "note": "Notification center: would a customer see value here weekly, or churn-inducing noise?"
+    }
+  ]
+}

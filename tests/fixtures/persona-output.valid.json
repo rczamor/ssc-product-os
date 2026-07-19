@@ -1,0 +1,68 @@
+{
+  "persona": "ciso",
+  "summary": "Pipeline smoke-test output. The scorecard's letter grade and factor navigation orient quickly, but data-heavy views load slowly and the issues list needs prioritization work before it is board-conversation ready.",
+  "likes": [
+    {
+      "key": "letter-grade-orientation",
+      "kind": "like",
+      "title": "Letter grade orients instantly at the top of My Scorecard",
+      "detail": "The B/82 grade badge sits top-left of My Scorecard with an immediate 'Create Action Plan' affordance, so posture and next step are visible within one second of page load.",
+      "whyItWorks": "Board-legible framing with a built-in path to action.",
+      "jtbd": "Translate technical security posture into board-ready risk narratives",
+      "screenshotLabels": ["my-scorecard"]
+    },
+    {
+      "key": "left-rail-information-scent",
+      "kind": "like",
+      "title": "Scorecard left rail exposes the full evidence tree",
+      "detail": "Overview, Score Factors, History, Issues, Compliance, Evidence Locker and Risk Quantification are one click from the scorecard, giving a CISO a predictable mental map of where evidence lives.",
+      "whyItWorks": "Predictable navigation reduces time-to-evidence during exec prep.",
+      "jtbd": "Produce defensible evidence for overlapping regulatory regimes",
+      "screenshotLabels": ["my-scorecard"]
+    }
+  ],
+  "dislikes": [
+    {
+      "key": "slow-artifact-loading",
+      "kind": "dislike",
+      "title": "Scorecard body shows a 'Loading artifacts' spinner for many seconds",
+      "detail": "On My Scorecard the header and grade render immediately but the Company Overview body remained on 'Loading artifacts' well past initial paint, leaving an empty page during a live briefing moment.",
+      "customerPain": "When I screen-share this in an exec meeting the page is blank while it loads.",
+      "jtbd": "Translate technical security posture into board-ready risk narratives",
+      "rootCause": "ux",
+      "effort": "M",
+      "firstAction": "Instrument p95 time-to-content on scorecard overview and add skeleton states.",
+      "severity": 3,
+      "screenshotLabels": ["my-scorecard"]
+    },
+    {
+      "key": "issues-list-no-prioritization",
+      "kind": "dislike",
+      "title": "Issues list lacks a 'top score drivers' cut",
+      "detail": "The Issues view lists findings without a visible ranking by score impact, so translating the list into the three fixes that would move the grade requires manual triage.",
+      "customerPain": "I cannot tell which three fixes would actually move my score this quarter.",
+      "jtbd": "Prioritize remediation with a flat headcount using outside-in risk signal",
+      "rootCause": "workflow",
+      "effort": "M",
+      "firstAction": "Prototype a score-impact-ranked view of the issues list.",
+      "severity": 4,
+      "screenshotLabels": ["score-issues"]
+    },
+    {
+      "key": "report-center-generic",
+      "kind": "dislike",
+      "title": "Report Center outputs are not audit-committee shaped",
+      "detail": "Report Center offers many export types but no template that matches what an audit committee expects (trend, peer benchmark, dollars-at-risk, remediation SLA table) in one artifact.",
+      "customerPain": "I still rebuild the board deck by hand from screenshots and CSVs.",
+      "jtbd": "Board/audit-committee reporting delivered on cadence",
+      "rootCause": "packaging",
+      "effort": "L",
+      "firstAction": "Interview five CISO customers about their current board-deck assembly workflow.",
+      "severity": 3,
+      "screenshotLabels": ["report-center"]
+    }
+  ],
+  "journeyNotes": [
+    { "label": "my-scorecard", "url": "https://platform.securityscorecard.io/#/scorecard/securityscorecardtech.com", "note": "grade renders fast, body slow" }
+  ]
+}

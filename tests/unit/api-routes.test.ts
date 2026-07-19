@@ -11,6 +11,10 @@ import { GET as runGet } from "@/app/api/runs/[id]/route";
 import { GET as requestsGet, POST as requestsPost } from "@/app/api/run-requests/route";
 import { PATCH as requestPatch } from "@/app/api/run-requests/[id]/route";
 import { GET as screenshotGet } from "@/app/api/screenshots/[id]/route";
+import { POST as reviewsPost } from "@/app/api/runs/[id]/reviews/route";
+import { POST as humanFindingPost } from "@/app/api/runs/[id]/findings/route";
+import { POST as approvePost } from "@/app/api/runs/[id]/approve/route";
+import { isRunApproved } from "@/lib/db/queries";
 
 function jsonReq(url: string, method: string, body?: unknown): NextRequest {
   return new NextRequest(`http://test.local${url}`, {
@@ -165,5 +169,122 @@ describe("run-requests endpoints", () => {
       jsonReq("/api/run-requests", "POST", { personas: ["hacker"] }),
     );
     expect(res.status).toBe(400);
+  });
+});
+
+describe("reviewer layer + approval gate", () => {
+  async function seededRunId(): Promise<string> {
+    const db = await getDb();
+    const [run] = await db.select({ id: runs.id }).from(runs);
+    return run.id;
+  }
+
+  it("records a human up/down vote and upserts on re-vote", async () => {
+    const id = await seededRunId();
+    const url = `/api/runs/${id}/reviews`;
+    const first = await reviewsPost(
+      jsonReq(url, "POST", { findingKey: "board-legible-grade", persona: "ciso", verdict: "up" }),
+      params(id),
+    );
+    expect(first.status).toBe(201);
+    expect((await first.json()).review.reviewerType).toBe("human");
+
+    // Re-voting the same finding replaces the prior vote (no duplicate row).
+    const second = await reviewsPost(
+      jsonReq(url, "POST", {
+        findingKey: "board-legible-grade",
+        persona: "ciso",
+        verdict: "down",
+        comment: "changed my mind",
+      }),
+      params(id),
+    );
+    expect(second.status).toBe(201);
+    const body = (await second.json()).review;
+    expect(body.verdict).toBe("down");
+    expect(body.comment).toBe("changed my mind");
+  });
+
+  it("404s a vote on a finding that isn't in the run", async () => {
+    const id = await seededRunId();
+    const res = await reviewsPost(
+      jsonReq(`/api/runs/${id}/reviews`, "POST", {
+        findingKey: "does-not-exist",
+        persona: "ciso",
+        verdict: "up",
+      }),
+      params(id),
+    );
+    expect(res.status).toBe(404);
+  });
+
+  it("400s a malformed vote", async () => {
+    const id = await seededRunId();
+    const res = await reviewsPost(
+      jsonReq(`/api/runs/${id}/reviews`, "POST", { findingKey: "x", persona: "ciso", verdict: "sideways" }),
+      params(id),
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("adds a human finding with origin=human and rejects an incomplete dislike", async () => {
+    const id = await seededRunId();
+    const ok = await humanFindingPost(
+      jsonReq(`/api/runs/${id}/findings`, "POST", {
+        persona: "vrm",
+        kind: "dislike",
+        title: "Human-added workflow gap",
+        detail: "A reviewer noticed the export step forces a manual reformat every quarter.",
+        jtbd: "Produce board-ready reporting without manual rework",
+        customerPain: "I rebuild the board deck by hand every single quarter.",
+        rootCause: "workflow",
+        effort: "M",
+        firstAction: "Prototype a board-template export.",
+        severity: 3,
+      }),
+      params(id),
+    );
+    expect(ok.status).toBe(201);
+    expect((await ok.json()).finding.origin).toBe("human");
+
+    // A dislike missing its required fields is rejected by the shared contract.
+    const bad = await humanFindingPost(
+      jsonReq(`/api/runs/${id}/findings`, "POST", {
+        persona: "vrm",
+        kind: "dislike",
+        title: "Missing required fields",
+        detail: "This dislike omits customerPain/rootCause/effort/firstAction/severity entirely.",
+        jtbd: "Some job to be done here",
+      }),
+      params(id),
+    );
+    expect(bad.status).toBe(400);
+
+    // jtbd is required for parity with agent findings — a like without it 400s.
+    const noJtbd = await humanFindingPost(
+      jsonReq(`/api/runs/${id}/findings`, "POST", {
+        persona: "vrm",
+        kind: "like",
+        title: "A like without a jtbd",
+        detail: "This like omits the jtbd field which the shared contract requires.",
+      }),
+      params(id),
+    );
+    expect(noJtbd.status).toBe(400);
+  });
+
+  it("gates the matrix push: no approval before Approve, approval is idempotent", async () => {
+    const id = await seededRunId();
+    // The hard gate: nothing may push before a human approval exists.
+    expect(await isRunApproved(id)).toBe(false);
+
+    const first = await approvePost(jsonReq(`/api/runs/${id}/approve`, "POST"), params(id));
+    expect(first.status).toBe(200);
+    expect((await first.json()).alreadyApproved).toBe(false);
+    expect(await isRunApproved(id)).toBe(true);
+
+    // Approving again is a no-op, not a duplicate.
+    const second = await approvePost(jsonReq(`/api/runs/${id}/approve`, "POST"), params(id));
+    expect((await second.json()).alreadyApproved).toBe(true);
   });
 });

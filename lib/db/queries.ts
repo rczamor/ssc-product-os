@@ -1,10 +1,12 @@
 import { asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import {
+  approvals,
   deliverables,
   feedbackItems,
   findings,
   personaEvaluations,
+  reviews,
   runs,
   screenshots,
 } from "./schema";
@@ -13,6 +15,7 @@ import {
   INGESTION_SOURCES,
   type FeedbackSource,
 } from "@/lib/schemas/feedback";
+import { isUuid } from "@/lib/validation";
 
 export interface RunWithCounts {
   id: string;
@@ -165,29 +168,49 @@ export async function getIngestionSummary(itemLimit = 500): Promise<IngestionSum
   return { totalItems, sources, personaCounts, items };
 }
 
+/**
+ * The hard approval gate. True only when a human `approvals` row exists for the
+ * run. Phase 3's matrix→Linear push MUST call this first — no approval, no push.
+ */
+export async function isRunApproved(runId: string): Promise<boolean> {
+  // Fail closed on a malformed id rather than letting Postgres 22P02 reject the
+  // caller (e.g. the Phase-3 push) — an unknown run is simply not approved.
+  if (!isUuid(runId)) return false;
+  const db = await getDb();
+  const rows = await db
+    .select({ id: approvals.id })
+    .from(approvals)
+    .where(eq(approvals.runId, runId))
+    .limit(1);
+  return rows.length > 0;
+}
+
 /** Full run detail (used by both the run-detail page and the runs/:id API). */
 export async function getRunDetail(id: string) {
   const db = await getDb();
   const [run] = await db.select().from(runs).where(eq(runs.id, id));
   if (!run) return null;
 
-  const [personaEvals, findingRows, deliverableRows, shots] = await Promise.all([
-    db.select().from(personaEvaluations).where(eq(personaEvaluations.runId, id)),
-    db.select().from(findings).where(eq(findings.runId, id)).orderBy(asc(findings.createdAt)),
-    db.select().from(deliverables).where(eq(deliverables.runId, id)),
-    db
-      .select({
-        id: screenshots.id,
-        persona: screenshots.persona,
-        label: screenshots.label,
-        urlVisited: screenshots.urlVisited,
-        width: screenshots.width,
-        height: screenshots.height,
-        takenAt: screenshots.takenAt,
-      })
-      .from(screenshots)
-      .where(eq(screenshots.runId, id)),
-  ]);
+  const [personaEvals, findingRows, deliverableRows, shots, reviewRows, approvalRows] =
+    await Promise.all([
+      db.select().from(personaEvaluations).where(eq(personaEvaluations.runId, id)),
+      db.select().from(findings).where(eq(findings.runId, id)).orderBy(asc(findings.createdAt)),
+      db.select().from(deliverables).where(eq(deliverables.runId, id)),
+      db
+        .select({
+          id: screenshots.id,
+          persona: screenshots.persona,
+          label: screenshots.label,
+          urlVisited: screenshots.urlVisited,
+          width: screenshots.width,
+          height: screenshots.height,
+          takenAt: screenshots.takenAt,
+        })
+        .from(screenshots)
+        .where(eq(screenshots.runId, id)),
+      db.select().from(reviews).where(eq(reviews.runId, id)).orderBy(asc(reviews.createdAt)),
+      db.select().from(approvals).where(eq(approvals.runId, id)),
+    ]);
 
   return {
     run,
@@ -195,5 +218,7 @@ export async function getRunDetail(id: string) {
     findings: findingRows,
     deliverable: deliverableRows[0] ?? null,
     screenshots: shots,
+    reviews: reviewRows,
+    approval: approvalRows[0] ?? null,
   };
 }

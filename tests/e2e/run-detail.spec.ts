@@ -23,3 +23,24 @@ test("run detail renders deliverable, findings, and screenshots", async ({ page 
   expect(res.status()).toBe(200);
   expect(res.headers()["content-type"]).toBe("image/jpeg");
 });
+
+test("reviewer can vote on a finding and approve the matrix", async ({ page }) => {
+  await login(page);
+  await page.getByRole("link", { name: "view →" }).first().click();
+
+  // Accuracy strip is present.
+  await expect(page.getByRole("heading", { name: "AI accuracy & oversight" })).toBeVisible();
+
+  // Every finding shows an Agent/Human origin badge and a review control.
+  await expect(page.getByText("Your review").first()).toBeVisible();
+
+  // Cast an up-vote on the first finding.
+  const firstAgree = page.getByRole("button", { name: "▲ Agree" }).first();
+  await firstAgree.click();
+  await expect(firstAgree).toHaveAttribute("aria-pressed", "true");
+
+  // Approve the matrix (two-step confirm), then it shows the approved state.
+  await page.getByRole("button", { name: "Approve matrix" }).click();
+  await page.getByRole("button", { name: "Confirm approval" }).click();
+  await expect(page.getByText("Matrix approved")).toBeVisible();
+});

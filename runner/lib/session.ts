@@ -15,7 +15,6 @@ const PLATFORM_HOST = "platform.securityscorecard.io";
  * (and any domain containing sso/session/login) as an expired session.
  */
 const LOGIN_URL_RE = /login|sign[-_]?in|signin|auth0|okta\.com|\/sso|session/i;
-const LOGIN_TITLE_RE = /\blog ?in\b|\bsign ?in\b/i;
 
 /** Server path of a URL, without the SPA hash route or query string. */
 export function preHash(url: string): string {
@@ -28,14 +27,23 @@ export function urlLooksLikeLogin(url: string): boolean {
 }
 
 /**
- * Authoritative "are we bounced to a login wall" check. Combines the URL
- * (pre-hash only), the page title, and — decisively — a visible password
- * field, so an authenticated vendor page is never misread as logged-out.
+ * Authoritative "are we bounced to a login wall" check: an auth-host/path in
+ * the (pre-hash) URL, or a visible email/password field on the page.
+ *
+ * The page TITLE is deliberately NOT used: the SSC SPA keeps a stale
+ * "Login to SecurityScorecard" document.title after a client-side navigation
+ * to /#/home, so a title check false-positives a healthy logged-in session as
+ * a login wall (observed in the Phase-0 login smoke).
+ *
+ * The in-app signal is a visible PASSWORD field only — the SSC login form
+ * always shows one, while authenticated surfaces do not. An email input is NOT
+ * used: many authenticated pages (Contact Manager, vendor-invite and
+ * questionnaire flows, account settings) show email inputs and would be
+ * misread as a wall, dropping journey artifacts and risking a spurious
+ * re-login. Auth-host/SSO redirects are covered by the URL check above.
  */
 export async function isLoginWall(page: Page): Promise<boolean> {
   if (urlLooksLikeLogin(page.url())) return true;
-  const title = await page.title().catch(() => "");
-  if (LOGIN_TITLE_RE.test(title)) return true;
   return page
     .locator('input[type="password"]')
     .first()

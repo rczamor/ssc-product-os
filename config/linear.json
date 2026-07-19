@@ -1,0 +1,46 @@
+{
+  "_comment": "Linear workspace resolution for the SSC-ProductOS take-home. Ids only — the LINEAR_API_KEY secret stays in .env.local / Vercel env, never here. Take-home work is isolated inside the SSC-ProductOS project within the existing 'Riche Zamor' team.",
+  "team": {
+    "id": "72132418-b477-4450-a30a-77391d5cfc47",
+    "key": "TRZ",
+    "name": "Riche Zamor"
+  },
+  "project": {
+    "id": "42b9cb43-2664-464b-abe2-8756249bdf21",
+    "name": "SSC-ProductOS",
+    "url": "https://linear.app/riche-life/project/ssc-productos-8f93499e4302"
+  },
+  "labels": {
+    "track:internal": "6711d8f0-be67-4448-9c3f-f23de0ee9759",
+    "track:external": "22f0616c-9f8b-496c-8c22-a632e5250d96",
+    "phase:48h": "3fe03dc0-ee6a-49ed-aa26-717117bc7997",
+    "phase:week-1": "c6e3d381-9a7a-4851-ab2d-abf58e4b092d",
+    "phase:week-2": "95aab311-c08c-4fcb-ac6b-528494742619",
+    "phase:week-3": "a6468c67-a9b8-4a9b-ae76-ed34361025f5",
+    "phase:day-30": "df1f9c72-77b5-445e-9360-4b618b3fb871",
+    "origin:matrix": "a5b3ce63-a7d6-4b35-a9ce-a52f71b5ac1f",
+    "origin:os-build": "df41c28f-51cc-469a-bac4-b16159fdc60f",
+    "origin:role-plan": "a8dc8b11-11c4-47e1-89fc-e320a21d2ee3"
+  },
+  "states": {
+    "Backlog": "79002adf-901c-4ce7-9f13-af2e5eb23d5f",
+    "Todo": "b08372f9-1e4a-4810-9762-8980af763140",
+    "In Progress": "b4dcc556-9419-485d-a73c-e4b5ccb6330d",
+    "In Review": "4ebbcad7-3403-4594-a7ea-022d07c6183f",
+    "Done": "89b04bf2-b0e0-4cf6-9448-b07554ec49ff",
+    "Canceled": "0b35863c-fa26-4b08-aba0-7a556fb17574",
+    "Duplicate": "713afdff-5fbc-4b31-acfe-f613e261ac78"
+  },
+  "priorities": { "urgent": 1, "high": 2, "medium": 3, "low": 4 },
+  "day0": "2026-07-20",
+  "_day0_note": "Configurable day-0 for the 30-day role-plan due dates (default: next Monday). Weekdays only when spacing across the window.",
+  "buildEpics": {
+    "phase-0": "TRZ-1839",
+    "phase-1": "TRZ-1840",
+    "phase-2": "TRZ-1841",
+    "phase-3": "TRZ-1842",
+    "phase-4": "TRZ-1843",
+    "phase-5": "TRZ-1844",
+    "phase-6": "TRZ-1845"
+  }
+}

@@ -10,8 +10,9 @@ out/
 .env.*
 !.env.example
 
-# run artifacts (screenshots, snapshots, findings) — local only
-runs/
+# run artifacts (screenshots, snapshots, findings) — local only.
+# Anchored to repo root so it does NOT also match app/runs/ or app/api/runs/.
+/runs/
 
 # local databases
 .pglite-data/

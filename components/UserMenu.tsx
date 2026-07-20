@@ -9,7 +9,10 @@ export default function UserMenu({ initials, label }: { initials: string; label:
 
   async function logout() {
     setLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    await fetch("/api/auth/logout", { method: "POST", signal: controller.signal }).catch(() => {});
+    clearTimeout(timeout);
     router.push("/login");
     router.refresh();
   }

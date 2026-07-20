@@ -15,7 +15,10 @@ export default function NavTabs() {
   return (
     <nav className="flex h-full items-stretch gap-0.5">
       {TABS.map((t) => {
-        const active = t.href === "/" ? pathname === "/" : pathname?.startsWith(t.href);
+        const active =
+          t.href === "/"
+            ? pathname === "/" || pathname?.startsWith("/runs")
+            : pathname?.startsWith(t.href);
         return (
           <Link
             key={t.href}

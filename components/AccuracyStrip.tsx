@@ -1,9 +1,20 @@
 import type { Accuracy } from "@/lib/reviews";
 
-function Stat({ value, valueClass, label, title }: { value: string; valueClass: string; label: string; title?: string }) {
+function Stat({
+  value,
+  valueClass,
+  label,
+  detail,
+}: {
+  value: string;
+  valueClass: string;
+  label: string;
+  detail?: string;
+}) {
   return (
-    <span title={title}>
+    <span>
       <span className={`font-mono font-semibold ${valueClass}`}>{value}</span> {label}
+      {detail && <span className="text-ink-5"> ({detail})</span>}
     </span>
   );
 }
@@ -30,7 +41,7 @@ export default function AccuracyStrip({ accuracy }: { accuracy: Accuracy }) {
           value={agree}
           valueClass="text-green-dark"
           label="human agree-rate"
-          title={
+          detail={
             accuracy.humanVotesOnAgent === 0
               ? "no human votes yet"
               : `${accuracy.agreeCount}/${accuracy.humanVotesOnAgent} votes · ${accuracy.agentFindingsReviewed} reviewed`
@@ -42,13 +53,13 @@ export default function AccuracyStrip({ accuracy }: { accuracy: Accuracy }) {
           }`}
           valueClass="text-ink-3"
           label="judge spec/action"
-          title={`${accuracy.judgedCount} findings scored 1-5 · LLM-as-judge, per finding`}
+          detail={`${accuracy.judgedCount} findings scored 1-5, LLM-as-judge`}
         />
         <Stat
           value="100%"
           valueClass="text-ink-3"
           label="schema-valid on write"
-          title="zod gate blocks invalid agent output before it persists"
+          detail="zod gate blocks invalid agent output before it persists"
         />
       </div>
     </section>

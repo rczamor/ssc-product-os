@@ -13,6 +13,9 @@ export interface CorpusDoc {
   body: string;
 }
 
+/** A single "Forces of Progress" item rendered on the Persona Detail view. */
+export type Force = { icon: string; key: string; text: string };
+
 export interface PersonaDoc {
   slug: PersonaSlug;
   name: string;
@@ -20,6 +23,12 @@ export interface PersonaDoc {
   companyProfile: string;
   jtbd: string[];
   kpis: string[];
+  /** One curated sentence naming the persona's single most important JTBD. */
+  primaryJob: string;
+  /** Short one-line descriptor for a monospace subtitle. */
+  profile: string;
+  /** Forces of Progress: what pushes toward vs. holds back adoption/expansion. */
+  forces: { driving: Force[]; holding: Force[] };
   /** ISO date the persona knowledge base was established (front-matter). */
   created: string | null;
   body: string;
@@ -59,6 +68,37 @@ function toIsoDate(value: unknown): string | null {
   return Number.isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
 }
 
+/**
+ * Parse a front-matter list of `{ icon, key, text }` mappings into Force[].
+ * Non-object or missing entries are dropped; missing keys become empty strings.
+ */
+function toForceList(value: unknown): Force[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rec = item as Record<string, unknown>;
+    return [
+      {
+        icon: String(rec.icon ?? ""),
+        key: String(rec.key ?? ""),
+        text: String(rec.text ?? ""),
+      },
+    ];
+  });
+}
+
+/** Parse the `forces` front-matter object; absent/malformed → empty arrays. */
+function toForces(value: unknown): { driving: Force[]; holding: Force[] } {
+  const rec =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  return {
+    driving: toForceList(rec.driving),
+    holding: toForceList(rec.holding),
+  };
+}
+
 function readCorpusDir(dir: string): CorpusDoc[] {
   if (!fs.existsSync(dir)) return [];
   return fs
@@ -87,13 +127,23 @@ export function loadPersonas(): PersonaDoc[] {
     const parsed = matter(
       fs.readFileSync(path.join(PERSONAS_DIR, slug, "persona.md"), "utf8"),
     );
+    const jtbd = toStringList(parsed.data.jtbd);
+    const title = String(parsed.data.title ?? "");
+    const companyProfile = String(parsed.data.company_profile ?? "");
     return {
       slug,
       name: String(parsed.data.name ?? slug),
-      title: String(parsed.data.title ?? ""),
-      companyProfile: String(parsed.data.company_profile ?? ""),
-      jtbd: toStringList(parsed.data.jtbd),
+      title,
+      companyProfile,
+      jtbd,
       kpis: toStringList(parsed.data.kpis),
+      // Fallback: first JTBD when no curated primary_job is present.
+      primaryJob: String(parsed.data.primary_job ?? "") || jtbd[0] || "",
+      // Fallback: truncated title, else company profile.
+      profile:
+        String(parsed.data.profile ?? "") ||
+        (title || companyProfile).slice(0, 80),
+      forces: toForces(parsed.data.forces),
       created: toIsoDate(parsed.data.created),
       body: parsed.content,
       corpus: readCorpusDir(path.join(PERSONAS_DIR, slug, "corpus")),

@@ -72,6 +72,10 @@ export const MetricDefinitionSchema = z.object({
   cadence: z.string().min(1).max(40),
   actionTrigger: z.string().min(10).max(500),
   vizType: z.string().min(1).max(40),
+  /** Where a tripped trigger routes — the Action Queue's destination pill
+   *  (e.g. "Enablement queue / CCB", "CSM play · Gainsight"). Falls back to
+   *  `owner` when absent. */
+  route: z.string().min(1).max(80).nullish(),
   /**
    * How the stored numeric value should be displayed. Explicit rather than
    * inferred from the value's magnitude — a card's `currentValue` is a MEAN

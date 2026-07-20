@@ -20,6 +20,23 @@ kpis:
   - Customer health score coverage and green/yellow/red mix across the book
   - Renewal forecast accuracy and on-time renewal rate
   - Escalation volume and time-to-resolution on score disputes/refutes
+primary_job: Protect and grow net revenue retention across the book — get each account to defensible first value fast and never lose a renewal to a preventable cause like an unresolved dispute or an unprovable QBR.
+profile: Enterprise CSM/SE · SecurityScorecard post-sales · owns GRR + NRR
+forces:
+  driving:
+    - icon: 📈
+      key: Expansion pays the plan
+      text: NRR past 105% comes from module expansion, and SCDR/MAX managed services growing 370% YoY gives them a fast-moving story to land in every healthy account.
+    - icon: 🖥️
+      key: Live demo wins deals
+      text: Pulling up a prospect's own scorecard in real time is the signature move of ratings sales, and when the data holds up it converts a skeptical CISO on the spot.
+  holding:
+    - icon: 🚨
+      key: False positives land here
+      text: G2 reviewers cite misattributed IPs and cloud auto-scaling artifacts spawning thousands of false positives, and it is the CSM in the room when the customer says the product is wrong.
+    - icon: 📊
+      key: Brittle QBR exports
+      text: Reports limited to predefined formats force a manual rebuild of every board-ready QBR deck, burning the hours that should go to multi-threading the accounts at risk of churn.
 ---
 
 ## Role Context

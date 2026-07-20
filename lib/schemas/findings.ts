@@ -52,6 +52,9 @@ const FindingBase = z.object({
   detail: z.string().min(40),
   /** Labels of screenshots (from the journey or ad-hoc captures) that evidence this. */
   screenshotLabels: z.array(z.string()).default([]),
+  /** Recommend verdict shown on the matrix row. Optional on agent output
+   *  (derived downstream); set explicitly on human-added findings. */
+  verdict: KfdVerdictSchema.optional(),
 });
 
 export const LikeSchema = FindingBase.extend({
@@ -60,6 +63,12 @@ export const LikeSchema = FindingBase.extend({
   whyItWorks: z.string().min(20),
   /** The persona JTBD or KPI this supports (quote from personas/<p>/persona.md). */
   jtbd: z.string().min(5),
+  /** Optional qualifiers so "things that work" rows can show root-cause / effort
+   *  chips and a "protect it" first action (the design shows them on likes too).
+   *  Absent → those chips are hidden. */
+  rootCause: RootCauseSchema.optional(),
+  effort: EffortSchema.optional(),
+  firstAction: z.string().min(10).optional(),
 });
 export type Like = z.infer<typeof LikeSchema>;
 

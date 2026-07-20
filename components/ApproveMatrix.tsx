@@ -1,14 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { formatTimestamp } from "@/lib/validation";
 
 /**
- * The human approval gate. Writing an approval is the SOLE trigger for the
- * Phase-3 matrix→Linear push; this control is the only way to create one from
- * the UI. Idempotent — approving an approved run is a no-op. Once approved it
- * shows who/when and cannot be un-approved here.
+ * The human approval gate, rendered as the matrix's hero footer. Writing an
+ * approval is the SOLE trigger for the Phase-3 matrix→Linear push; this control
+ * is the only way to create one from the UI. Single-click (no confirm sub-step);
+ * idempotent — approving an approved run is a no-op. Once approved it shows
+ * who/when and cannot be un-approved here.
  */
 export default function ApproveMatrix({
   runId,
@@ -23,7 +25,6 @@ export default function ApproveMatrix({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [confirming, setConfirming] = useState(false);
 
   async function approve() {
     setBusy(true);
@@ -34,57 +35,68 @@ export default function ApproveMatrix({
       /* refresh will reflect real state */
     } finally {
       setBusy(false);
-      setConfirming(false);
     }
   }
 
   if (approved) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-green/30 bg-green/[0.06] px-3 py-2 text-sm">
-        <span className="font-medium text-green-dark">✓ Matrix approved</span>
-        <span className="text-green-dark">
-          by {approvedBy}
-          {approvedAt ? ` · ${formatTimestamp(approvedAt)}` : ""}
-        </span>
-        <span className="text-xs text-green">— eligible for the Linear push</span>
+      <div
+        className="flex items-center gap-[13px] border-t px-5 py-[15px]"
+        style={{ background: "rgba(31,157,99,0.06)", borderTopColor: "rgba(31,157,99,0.24)" }}
+      >
+        <div
+          className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-lg text-[18px] text-green"
+          style={{ background: "rgba(31,157,99,0.13)" }}
+        >
+          ✓
+        </div>
+        <div className="flex-1">
+          <div className="text-[14px] font-semibold text-ink">
+            Matrix approved by {approvedBy ?? "admin"} ·{" "}
+            {approvedAt ? formatTimestamp(approvedAt) : "just now"}
+          </div>
+          <div className="mt-[2px] text-[12px] text-ink-4">
+            Approval written to <span className="font-mono text-ink-3">approvals</span> — the sole
+            trigger for the matrix→Linear push.{" "}
+            <span className="font-medium text-green-dark">Eligible for the Work board push.</span>
+          </div>
+        </div>
+        <Link
+          href="/work"
+          className="flex-none cursor-pointer rounded-lg bg-accent px-[15px] py-[9px] text-[12.5px] font-semibold text-white hover:brightness-[1.08]"
+        >
+          View on Work board →
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
-      <div className="text-sm text-amber-dark">
-        <span className="font-medium">Not yet approved.</span> Approving is the only trigger for
-        pushing this matrix to Linear.
+    <div className="flex items-center gap-[13px] border-t border-line-2 bg-card-alt px-5 py-[15px]">
+      <div
+        className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-lg"
+        style={{ background: "rgba(176,119,20,0.1)" }}
+      >
+        <span
+          className="h-[11px] w-[11px] rounded-[3px]"
+          style={{ border: "2px solid #b07714" }}
+        />
       </div>
-      {confirming ? (
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={approve}
-            className="rounded-md bg-green px-3 py-1 text-sm font-medium text-white hover:brightness-105 disabled:opacity-50"
-          >
-            {busy ? "Approving…" : "Confirm approval"}
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setConfirming(false)}
-            className="text-sm text-ink-4 hover:text-ink-2"
-          >
-            cancel
-          </button>
+      <div className="flex-1">
+        <div className="text-[14px] font-semibold text-ink">Not yet approved</div>
+        <div className="mt-[2px] text-[12px] text-ink-4">
+          Human approval is the <span className="font-semibold text-ink-2">only</span> trigger for
+          pushing matrix-derived tickets to Linear — the gate is enforced server-side.
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="ml-auto rounded-md bg-accent px-3 py-1 text-sm font-semibold text-white shadow-accent hover:brightness-105"
-        >
-          Approve matrix
-        </button>
-      )}
+      </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={approve}
+        className="flex-none cursor-pointer rounded-lg bg-accent px-[17px] py-[9px] text-[12.5px] font-semibold text-white shadow-accent hover:brightness-[1.08] disabled:opacity-60"
+      >
+        {busy ? "Approving…" : "Approve matrix →"}
+      </button>
     </div>
   );
 }

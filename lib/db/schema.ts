@@ -27,6 +27,9 @@ export const runs = pgTable("runs", {
   trigger: text("trigger").notNull().default("slash"),
   personas: jsonb("personas").$type<string[]>().notNull().default(["ciso", "vrm", "gtm_cs"]),
   langfuseTraceId: text("langfuse_trace_id"),
+  /** Count of schema-gate validation rejections retried during the run —
+   *  the accuracy strip's "N retries caught" (Prompt-4 oversight evidence). */
+  retriesCaught: integer("retries_caught").notNull().default(0),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
   finishedAt: timestamp("finished_at", { withTimezone: true }),
   error: text("error"),
@@ -94,6 +97,11 @@ export const findings = pgTable(
     effort: text("effort"),
     firstAction: text("first_action"),
     severity: integer("severity"),
+    /** kill | fix | double_down — the recommend verdict shown on each matrix
+     *  row. Null until set by the synthesizer/human-add path; the query layer
+     *  derives it from the deliverable KFD table (dislikes) or double_down
+     *  (likes) when null. */
+    verdict: text("verdict"),
     /** agent | human — who authored this finding (agent runs vs. reviewer adds). */
     origin: text("origin").notNull().default("agent"),
     screenshotIds: jsonb("screenshot_ids").$type<string[]>().notNull().default([]),

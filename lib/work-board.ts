@@ -1,4 +1,5 @@
 import type { WorkIssue } from "@/lib/db/queries";
+import type { KfdVerdict, PersonaSlug } from "@/lib/schemas/findings";
 
 export type Track = "all" | "internal" | "external";
 
@@ -10,6 +11,110 @@ export function trackOf(issue: WorkIssue): "internal" | "external" | null {
 
 export function phaseOf(issue: WorkIssue): string | null {
   return issue.labels.find((l) => l.startsWith("phase:")) ?? null;
+}
+
+/** The design relabels the two tracks: internal → "ProductOS", external → "SSC Platform". */
+export const TRACK_LABELS: Record<"internal" | "external", string> = {
+  internal: "ProductOS",
+  external: "SSC Platform",
+};
+export const TRACK_NOUNS: Record<"internal" | "external", string> = {
+  internal: "product-OS build + 30-day role plan",
+  external: "approved matrix pushed as epics + a CCB kill",
+};
+
+/** Personas attached to an issue via `persona:<slug>` labels (A11). */
+export function personasOf(issue: WorkIssue): PersonaSlug[] {
+  return issue.labels
+    .filter((l) => l.startsWith("persona:"))
+    .map((l) => l.slice("persona:".length))
+    .filter((s): s is PersonaSlug => s === "ciso" || s === "vrm" || s === "gtm_cs");
+}
+
+/** Recommend verdict for an external ticket — a `verdict:<x>` label, else the
+ *  title prefix the drafter emits ("Fix:", "Double down:", "CCB decision: kill") (A12). */
+export function verdictOf(issue: WorkIssue): KfdVerdict | null {
+  const label = issue.labels.find((l) => l.startsWith("verdict:"))?.slice("verdict:".length);
+  if (label === "kill" || label === "fix" || label === "double_down") return label;
+  const t = issue.title.toLowerCase();
+  if (/^ccb decision: kill|^kill:/.test(t)) return "kill";
+  if (/^double[ -]down/.test(t)) return "double_down";
+  if (/^fix:/.test(t)) return "fix";
+  return null;
+}
+
+/** Relative-time timeline buckets (A15) — the mockup's Now→This quarter lanes. */
+export const TIMELINE_BUCKETS = [
+  { key: "shipped", label: "Shipped", sublabel: "os-build · pre day-0" },
+  { key: "today", label: "Today" },
+  { key: "next-3-days", label: "Next 3 days" },
+  { key: "this-week", label: "This week" },
+  { key: "next-week", label: "Next week" },
+  { key: "this-month", label: "This month" },
+  { key: "next-month", label: "Next month" },
+  { key: "this-quarter", label: "This quarter" },
+] as const;
+export type TimelineBucketKey = (typeof TIMELINE_BUCKETS)[number]["key"];
+
+/** Deterministic phase→bucket fallback for issues without a due date. */
+const PHASE_BUCKET: Record<string, TimelineBucketKey> = {
+  "phase:48h": "next-3-days",
+  "phase:week-1": "this-week",
+  "phase:week-2": "next-week",
+  "phase:week-3": "this-month",
+  "phase:day-30": "this-quarter",
+};
+
+function startOfDayMs(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+/** Which timeline bucket an issue lands in, relative to `now`. */
+export function bucketOf(issue: WorkIssue, now: Date): TimelineBucketKey {
+  if (issue.stateType === "completed" || issue.completedAt) return "shipped";
+  if (issue.dueDate) {
+    const due = new Date(`${issue.dueDate}T00:00:00`);
+    const days = Math.floor((startOfDayMs(due) - startOfDayMs(now)) / 86_400_000);
+    if (days <= 0) return "today";
+    if (days <= 3) return "next-3-days";
+    if (days <= 7) return "this-week";
+    if (days <= 14) return "next-week";
+    if (days <= 31) return "this-month";
+    if (days <= 62) return "next-month";
+    return "this-quarter";
+  }
+  return PHASE_BUCKET[phaseOf(issue) ?? ""] ?? "this-quarter";
+}
+
+export interface TimelineBucket {
+  key: TimelineBucketKey;
+  label: string;
+  sublabel?: string;
+  issues: WorkIssue[];
+}
+
+/**
+ * Group top-level issues (track-filtered) into the relative-time buckets. All
+ * eight buckets are always returned (empty ones included) so the timeline shows
+ * "Next month · 0" exactly as the mockup does.
+ */
+export function buildTimelineBuckets(issues: WorkIssue[], track: Track, now: Date): TimelineBucket[] {
+  const topLevel = issues.filter(
+    (i) => !i.parentId && (track === "all" || trackOf(i) === track),
+  );
+  const byBucket = new Map<TimelineBucketKey, WorkIssue[]>();
+  for (const i of topLevel) {
+    const b = bucketOf(i, now);
+    const arr = byBucket.get(b) ?? [];
+    arr.push(i);
+    byBucket.set(b, arr);
+  }
+  return TIMELINE_BUCKETS.map((b) => ({
+    key: b.key,
+    label: b.label,
+    sublabel: "sublabel" in b ? b.sublabel : undefined,
+    issues: byBucket.get(b.key) ?? [],
+  }));
 }
 
 export interface TimelineEpic {

@@ -43,6 +43,13 @@
       "when": 1784511810580,
       "tag": "0005_friday_updates_and_completed_at",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784563089482,
+      "tag": "0006_design_v2_finding_verdict_retries",
+      "breakpoints": true
     }
   ]
 }

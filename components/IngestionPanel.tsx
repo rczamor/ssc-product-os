@@ -1,153 +1,147 @@
-import { formatTimestamp } from "@/lib/validation";
-import { PERSONA_LABELS, type PersonaSlug } from "@/lib/schemas/findings";
-import type { IngestionSummary } from "@/lib/db/queries";
-import type { Theme } from "@/lib/feedback-themes";
+"use client";
 
-export interface PersonaKnowledgeBase {
-  slug: string;
-  name: string;
-  title: string;
-  created: string | null;
-  jtbdCount: number;
-  corpusCount: number;
-  feedbackCount: number;
+import { useState } from "react";
+
+export interface FeedbackSourceChip {
+  source: string;
+  label: string;
+  kind: "scraped" | "connector";
+  connected: boolean;
+  count: number;
 }
 
-function personaLabel(slug: string | null): string {
-  if (!slug) return "Unmapped";
-  return PERSONA_LABELS[slug as PersonaSlug] ?? slug;
-}
+/** Per-connector copy for the (non-functional) Connect stub panel. */
+const CONNECT_META: Record<string, { note: string; placeholder: string }> = {
+  g2: { note: "review site · OAuth", placeholder: "Workspace URL" },
+  trustradius: { note: "review site · API", placeholder: "API key" },
+  peerspot: { note: "review aggregator · API", placeholder: "API key" },
+  pendo: { note: "product telemetry · API", placeholder: "Integration key" },
+  gong: { note: "call intelligence · OAuth", placeholder: "Workspace URL" },
+  gainsight: { note: "CS health & plays · API", placeholder: "API key" },
+  snowflake: { note: "usage warehouse · reader", placeholder: "Account · warehouse" },
+};
 
 /**
- * Planning-screen ingestion panel. Shows connected feedback sources (with counts
- * + last-updated) alongside available-but-not-connected connector targets, the
- * persona knowledge bases and when they were established, and keyword-clustered
- * themes presented strictly as PROPOSED persona updates pending human approval.
+ * The Planning screen's FEEDBACK SOURCES row: a compact chip row of connected
+ * (scraped) sources with live counts, plus available-but-not-connected connector
+ * targets that each expose a "+" opening a stub Connect panel. The panel is
+ * intentionally non-functional — this app ingests read-only; connecting is a
+ * design placeholder that marks the chip "syncing…" locally without persisting.
  */
-export default function IngestionPanel({
-  summary,
-  themes,
-  personas,
+export default function FeedbackSources({
+  sources,
+  updatedLabel,
 }: {
-  summary: IngestionSummary;
-  themes: Theme[];
-  personas: PersonaKnowledgeBase[];
+  sources: FeedbackSourceChip[];
+  updatedLabel: string;
 }) {
-  const connected = summary.sources.filter((s) => s.connected);
-  const available = summary.sources.filter((s) => !s.connected);
+  const [configuring, setConfiguring] = useState<string | null>(null);
+  const [localConnected, setLocalConnected] = useState<Record<string, boolean>>({});
+
+  const cfg = configuring
+    ? {
+        source: configuring,
+        label: sources.find((s) => s.source === configuring)?.label ?? configuring,
+        ...(CONNECT_META[configuring] ?? { note: "connector", placeholder: "Credential" }),
+      }
+    : null;
 
   return (
-    <section className="rounded-[11px] border border-line bg-card shadow-card">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line-2 px-5 py-4">
-        <h2 className="text-sm font-semibold text-ink">Customer feedback ingestion</h2>
-        <span className="font-mono text-xs text-ink-5">
-          {summary.totalItems} item{summary.totalItems === 1 ? "" : "s"} ·{" "}
-          {connected.length} source{connected.length === 1 ? "" : "s"} connected
+    <section className="mb-[14px] rounded-[10px] border border-line-2 bg-card-alt px-[14px] py-[10px]">
+      <div className="flex flex-wrap items-center gap-[9px]">
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-6">
+          Feedback sources
         </span>
+
+        {sources.map((s) => {
+          if (s.connected) {
+            return (
+              <span
+                key={s.source}
+                className="inline-flex items-center gap-[6px] rounded-[7px] bg-card px-[10px] py-1 text-[11.5px] text-ink-2"
+                style={{ border: "1px solid rgba(31,157,99,0.32)" }}
+              >
+                <span className="h-[6px] w-[6px] rounded-full" style={{ background: "#1f9d63" }} />
+                {s.label} <span className="font-mono font-semibold">{s.count}</span>{" "}
+                <span className="text-ink-5">{s.kind === "scraped" ? "scraped" : "synced"}</span>
+              </span>
+            );
+          }
+          if (localConnected[s.source]) {
+            return (
+              <span
+                key={s.source}
+                className="inline-flex items-center gap-[6px] rounded-[7px] bg-card px-[10px] py-1 text-[11.5px] text-ink-2"
+                style={{ border: "1px solid rgba(176,119,20,0.35)" }}
+              >
+                <span className="h-[6px] w-[6px] rounded-full" style={{ background: "#b07714" }} />
+                {s.label}{" "}
+                <span className="font-mono text-[10.5px] text-amber-dark">syncing…</span>
+              </span>
+            );
+          }
+          return (
+            <span
+              key={s.source}
+              className="inline-flex items-center gap-1 rounded-[7px] border border-line bg-card py-[3px] pl-[10px] pr-1 text-[11.5px] text-ink-5"
+            >
+              {s.label}
+              <button
+                type="button"
+                title="Configure integration"
+                onClick={() => setConfiguring(s.source)}
+                className="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-[5px] border border-line bg-card-alt font-sans text-[14px] leading-none text-ink-4 hover:border-accent hover:text-accent"
+              >
+                +
+              </button>
+            </span>
+          );
+        })}
+
+        <span className="ml-auto font-mono text-[11px] text-ink-7">updated {updatedLabel}</span>
       </div>
 
-      {summary.totalItems === 0 ? (
-        <p className="px-5 py-4 text-sm text-ink-4">
-          No feedback ingested yet. Run{" "}
-          <code>node bin/run.mjs npx tsx runner/publish-feedback.ts</code> to load the demo
-          corpus, or <code>runner/scrape-reviews.ts</code> for a live scrape.
-        </p>
-      ) : (
-        <div className="space-y-6 px-5 py-4">
-          {/* Sources */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {connected.map((s) => (
-              <div key={s.source} className="rounded-lg border border-green/30 bg-green/[0.04] px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink-2">{s.label}</span>
-                  <span className="inline-flex rounded-md border border-green/30 bg-card px-2 py-0.5 text-[11px] font-medium text-green-dark">
-                    {s.kind === "scraped" ? "scraped" : "connected"}
-                  </span>
-                </div>
-                <div className="mt-1 font-mono text-2xl font-semibold text-ink">{s.count}</div>
-                <div className="font-mono text-xs text-ink-4">
-                  updated {formatTimestamp(s.lastUpdated) || "—"}
-                </div>
-              </div>
-            ))}
-            {available.map((s) => (
-              <div key={s.source} className="rounded-lg border border-dashed border-line bg-card-alt px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-ink-5">{s.label}</span>
-                  <span className="inline-flex rounded-md border border-line px-2 py-0.5 text-[11px] font-medium text-ink-5">
-                    available
-                  </span>
-                </div>
-                <div className="mt-1 text-xs text-ink-5">{s.note}</div>
-                <div className="mt-2 text-[11px] uppercase tracking-wide text-ink-5">
-                  connector target — not connected
-                </div>
-              </div>
-            ))}
+      {cfg && (
+        <div
+          className="mt-[11px] max-w-[560px] rounded-[9px] border bg-card px-[14px] py-[13px]"
+          style={{ borderColor: "var(--accent-bd)" }}
+        >
+          <div className="mb-[3px] flex items-center gap-2">
+            <span
+              className="inline-flex h-5 w-5 items-center justify-center rounded-[5px] text-[13px] font-bold"
+              style={{ background: "var(--accent-bg)", color: "var(--accent)" }}
+            >
+              +
+            </span>
+            <span className="text-[13px] font-semibold text-ink">Connect {cfg.label}</span>
+            <span className="text-[11px] text-ink-5">{cfg.note}</span>
           </div>
-
-          {/* Persona knowledge bases */}
-          <div>
-            <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-5">
-              Persona knowledge bases
-            </h3>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {personas.map((p) => (
-                <div key={p.slug} className="rounded-lg border border-line px-4 py-3">
-                  <div className="text-sm font-medium text-ink-2">{p.name}</div>
-                  <div className="truncate text-xs text-ink-4" title={p.title}>
-                    {p.title}
-                  </div>
-                  <dl className="mt-2 space-y-0.5 text-xs text-ink-4">
-                    <div className="flex justify-between">
-                      <dt>Created</dt>
-                      <dd className="font-mono text-ink-2">{p.created ?? "—"}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt>Corpus docs</dt>
-                      <dd className="font-mono text-ink-2">{p.corpusCount}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt>Mapped feedback</dt>
-                      <dd className="font-mono text-ink-2">{p.feedbackCount}</dd>
-                    </div>
-                  </dl>
-                </div>
-              ))}
-            </div>
+          <div className="my-[6px] mb-[10px] text-[11px] text-ink-5">
+            Read-only ingestion — the connector pulls feedback in; it never writes back to the
+            source.
           </div>
-
-          {/* Proposed themes */}
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-5">
-                Emerging themes
-              </h3>
-              <span className="inline-flex rounded-md border border-amber/30 bg-amber/10 px-2 py-0.5 text-[11px] font-medium text-amber-dark">
-                proposed persona updates · pending approval
-              </span>
-            </div>
-            <p className="mb-3 text-xs text-ink-4">
-              Keyword-clustered from ingested feedback. These are suggestions only — persona
-              docs stay the human-curated source of truth and are never auto-updated.
-            </p>
-            <ul className="divide-y divide-line-2 rounded-lg border border-line">
-              {themes.map((t) => (
-                <li key={t.key} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
-                  <span className="text-sm font-medium text-ink-2">{t.label}</span>
-                  {t.personaAffinity && (
-                    <span className="inline-flex rounded-md border border-accent/30 bg-accent/[0.07] px-2 py-0.5 text-[11px] font-medium text-accent">
-                      → {personaLabel(t.personaAffinity)}
-                    </span>
-                  )}
-                  <span className="ml-auto flex items-center gap-3 font-mono text-xs text-ink-4">
-                    <span>{t.count} mentions</span>
-                    {t.avgRating !== null && <span>avg {t.avgRating.toFixed(1)}★</span>}
-                  </span>
-                  <p className="w-full text-xs text-ink-4">{t.description}</p>
-                </li>
-              ))}
-            </ul>
+          <div className="flex items-center gap-2">
+            <input
+              placeholder={cfg.placeholder}
+              className="min-w-0 flex-1 rounded-[7px] border border-line bg-card-alt px-[10px] py-[7px] font-mono text-[11.5px] text-ink-2 outline-none focus:border-accent"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setLocalConnected((c) => ({ ...c, [cfg.source]: true }));
+                setConfiguring(null);
+              }}
+              className="cursor-pointer rounded-[7px] bg-accent px-[15px] py-2 text-[12px] font-semibold text-white hover:brightness-[1.08]"
+            >
+              Connect
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfiguring(null)}
+              className="cursor-pointer border-none bg-transparent px-[10px] py-2 text-[12px] text-ink-5 hover:text-ink-2"
+            >
+              cancel
+            </button>
           </div>
         </div>
       )}

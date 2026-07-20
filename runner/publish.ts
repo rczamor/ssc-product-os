@@ -145,10 +145,15 @@ async function publishPersona(runId: string, persona: string): Promise<void> {
       detail: f.detail,
       customerPain: f.kind === "dislike" ? f.customerPain : null,
       jtbd: f.jtbd,
-      rootCause: f.kind === "dislike" ? f.rootCause : null,
-      effort: f.kind === "dislike" ? f.effort : null,
-      firstAction: f.kind === "dislike" ? f.firstAction : null,
+      // rootCause/effort/firstAction are required on dislikes and optional on
+      // likes (the design shows these chips on "things that work" too).
+      rootCause: f.rootCause ?? null,
+      effort: f.effort ?? null,
+      firstAction: f.firstAction ?? null,
       severity: f.kind === "dislike" ? f.severity : null,
+      // Verdict: explicit when the agent/human set it, else null (the query
+      // layer derives it from the deliverable KFD table or defaults likes).
+      verdict: f.verdict ?? (f.kind === "like" ? "double_down" : null),
       screenshotIds: shotIds,
       raw: f,
     });

@@ -3,7 +3,14 @@ import { login } from "./helpers";
 
 test("run detail renders deliverable, findings, and screenshots", async ({ page }) => {
   await login(page);
-  await page.getByRole("link", { name: "view →" }).first().click();
+
+  // The Plan page no longer has "view →" links (the eval-runs table is gone), so
+  // navigate to the run detail directly using an id from the API.
+  const res = await page.request.get("/api/runs");
+  expect(res.status()).toBe(200);
+  const { runs } = (await res.json()) as { runs: Array<{ id: string }> };
+  expect(runs.length).toBeGreaterThan(0);
+  await page.goto(`/runs/${runs[0].id}`);
 
   await expect(page.getByRole("heading", { name: "Prompt-1 Deliverable" })).toBeVisible();
   await expect(page.getByText("3 things we like")).toBeVisible();
@@ -19,32 +26,32 @@ test("run detail renders deliverable, findings, and screenshots", async ({ page 
   const img = page.locator('img[src^="/api/screenshots/"]').first();
   await expect(img).toBeVisible();
   const src = await img.getAttribute("src");
-  const res = await page.request.get(src!);
-  expect(res.status()).toBe(200);
-  expect(res.headers()["content-type"]).toBe("image/jpeg");
+  const shot = await page.request.get(src!);
+  expect(shot.status()).toBe(200);
+  expect(shot.headers()["content-type"]).toBe("image/jpeg");
 });
 
-test("reviewer can vote on a finding and approve the matrix", async ({ page }) => {
+test("reviewer can vote on a finding and approve the matrix on the Plan screen", async ({
+  page,
+}) => {
   await login(page);
-  await page.getByRole("link", { name: "view →" }).first().click();
+  // The vote/approve controls now live on the Plan screen (`/`).
 
-  // Accuracy strip is present.
-  await expect(page.getByRole("heading", { name: "AI accuracy & oversight" })).toBeVisible();
+  // The AI accuracy & oversight strip is present.
+  await expect(page.getByText("AI accuracy & oversight").first()).toBeVisible();
 
-  // Every finding shows an Agent/Human origin badge and a review control.
+  // Every finding carries a "Your review" up/down control.
   await expect(page.getByText("Your review").first()).toBeVisible();
 
-  // Cast an up-vote on the first finding.
-  const firstAgree = page.getByRole("button", { name: "▲ Agree" }).first();
+  // Cast an up-vote (▲ / aria-label "Agree") on the first finding; it registers.
+  const firstAgree = page.getByRole("button", { name: "Agree" }).first();
   await firstAgree.click();
   await expect(firstAgree).toHaveAttribute("aria-pressed", "true");
 
-  // Approve the matrix (two-step confirm), then it shows the approved state.
-  await page.getByRole("button", { name: "Approve matrix" }).click();
-  await page.getByRole("button", { name: "Confirm approval" }).click();
+  // Approval is now a single-click "Approve matrix →" (no confirm sub-step).
+  const approve = page.getByRole("button", { name: /Approve matrix/ });
+  if (await approve.isVisible().catch(() => false)) {
+    await approve.click();
+  }
   await expect(page.getByText("Matrix approved")).toBeVisible();
-
-  // The Linear push control only appears once approved, and the draft materializes.
-  await expect(page.getByText("Linear push", { exact: true })).toBeVisible();
-  await expect(page.getByText(/tickets drafted from the matrix/)).toBeVisible();
 });

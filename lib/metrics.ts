@@ -25,10 +25,16 @@ export function loadMetricsRegistry(): MetricDefinition[] {
   return MetricsRegistrySchema.parse(raw).metrics;
 }
 
+export interface HealthFeature {
+  feature: TaxonomyFeature;
+  /** True when this feature tripped any metric trigger in the latest week (A13). */
+  tripped: boolean;
+}
+
 export interface HealthBoardEntry {
   state: HealthState;
   count: number;
-  features: TaxonomyFeature[];
+  features: HealthFeature[];
 }
 
 export interface HealthMover {
@@ -49,7 +55,10 @@ export interface HealthBoard {
  * "Movers" are features whose `previousHealthState` differs from their current
  * `health_state` (set directly in the human-edited taxonomy file).
  */
-export function buildHealthBoard(features: TaxonomyFeature[]): HealthBoard {
+export function buildHealthBoard(
+  features: TaxonomyFeature[],
+  trippedFeatureKeys: Set<string> = new Set(),
+): HealthBoard {
   const entries: HealthBoardEntry[] = HEALTH_STATES.map((state) => ({
     state,
     count: 0,
@@ -58,7 +67,7 @@ export function buildHealthBoard(features: TaxonomyFeature[]): HealthBoard {
   const byState = new Map(entries.map((e) => [e.state, e]));
 
   for (const f of features) {
-    byState.get(f.health_state)!.features.push(f);
+    byState.get(f.health_state)!.features.push({ feature: f, tripped: trippedFeatureKeys.has(f.key) });
     byState.get(f.health_state)!.count += 1;
   }
 
@@ -67,6 +76,23 @@ export function buildHealthBoard(features: TaxonomyFeature[]): HealthBoard {
     .map((f) => ({ feature: f, from: f.previousHealthState as HealthState, to: f.health_state }));
 
   return { entries, movers, totalFeatures: features.length };
+}
+
+/**
+ * The set of feature keys that tripped any metric trigger in the most recent
+ * observation week — drives the red "tripped" dot on Feature Portfolio Health
+ * cards (A13). Excludes the product-level sentinel.
+ */
+export function latestTrippedFeatureKeys(observations: MetricObservation[]): Set<string> {
+  if (observations.length === 0) return new Set();
+  const latestWeek = observations.reduce((max, o) => (o.weekStart > max ? o.weekStart : max), "");
+  const keys = new Set<string>();
+  for (const o of observations) {
+    if (o.weekStart === latestWeek && o.tripped && o.featureKey !== PRODUCT_LEVEL_KEY) {
+      keys.add(o.featureKey);
+    }
+  }
+  return keys;
 }
 
 /** Whether a lower or higher value is the "worse" direction for a metric —

@@ -1,4 +1,4 @@
-import { asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import {
   approvals,
@@ -284,14 +284,107 @@ export async function getRunDetail(id: string) {
       db.select().from(approvals).where(eq(approvals.runId, id)),
     ]);
 
+  // Derive a Recommend verdict for every finding when the column is null (runs
+  // published before findings.verdict existed): dislikes inherit the verdict of
+  // the KFD row that cites them; likes default to double_down. Matches keys in
+  // both "persona/key" and bare "key" form.
+  const kfd = (deliverableRows[0]?.kfdTable ?? []) as Array<{
+    verdict: string;
+    sourceFindingKeys?: string[];
+  }>;
+  const verdictByKey = new Map<string, string>();
+  for (const row of kfd) {
+    for (const raw of row.sourceFindingKeys ?? []) {
+      verdictByKey.set(raw, row.verdict);
+      const bare = raw.includes("/") ? raw.split("/").pop()! : raw;
+      if (!verdictByKey.has(bare)) verdictByKey.set(bare, row.verdict);
+    }
+  }
+  const findingsWithVerdict = findingRows.map((f) => ({
+    ...f,
+    verdict:
+      f.verdict ??
+      verdictByKey.get(`${f.persona}/${f.key}`) ??
+      verdictByKey.get(f.key) ??
+      (f.kind === "like" ? "double_down" : null),
+  }));
+
   return {
     run,
     personaEvaluations: personaEvals,
-    findings: findingRows,
+    findings: findingsWithVerdict,
     deliverable: deliverableRows[0] ?? null,
     screenshots: shots,
     reviews: reviewRows,
     approval: approvalRows[0] ?? null,
+  };
+}
+
+/** Per-persona finding count for a run — the Plan persona chips' `{{p.count}}` (A8). */
+export async function getPersonaFindingCounts(runId: string): Promise<Record<string, number>> {
+  if (!isUuid(runId)) return {};
+  const db = await getDb();
+  const rows = await db
+    .select({ persona: findings.persona, count: sql<number>`count(*)` })
+    .from(findings)
+    .where(eq(findings.runId, runId))
+    .groupBy(findings.persona);
+  return Object.fromEntries(rows.map((r) => [r.persona, Number(r.count)]));
+}
+
+export interface PersonaFinding {
+  key: string;
+  kind: string;
+  title: string;
+  customerPain: string | null;
+  verdict: string | null;
+}
+
+/**
+ * One persona's findings for a run (latest run when runId omitted), for the
+ * Persona Detail view (A9). Verdict is derived exactly as getRunDetail does.
+ */
+export async function getPersonaFindings(
+  persona: string,
+  runId?: string,
+): Promise<{ runId: string | null; findings: PersonaFinding[] }> {
+  const db = await getDb();
+  let targetRunId = runId && isUuid(runId) ? runId : null;
+  if (!targetRunId) {
+    const [latest] = await db.select({ id: runs.id }).from(runs).orderBy(desc(runs.startedAt)).limit(1);
+    targetRunId = latest?.id ?? null;
+  }
+  if (!targetRunId) return { runId: null, findings: [] };
+
+  const [rows, deliverableRows] = await Promise.all([
+    db
+      .select({
+        key: findings.key,
+        kind: findings.kind,
+        title: findings.title,
+        customerPain: findings.customerPain,
+        verdict: findings.verdict,
+      })
+      .from(findings)
+      .where(and(eq(findings.runId, targetRunId), eq(findings.persona, persona)))
+      .orderBy(asc(findings.createdAt)),
+    db.select({ kfd: deliverables.kfdTable }).from(deliverables).where(eq(deliverables.runId, targetRunId)),
+  ]);
+
+  const kfd = (deliverableRows[0]?.kfd ?? []) as Array<{ verdict: string; sourceFindingKeys?: string[] }>;
+  const verdictByKey = new Map<string, string>();
+  for (const row of kfd)
+    for (const raw of row.sourceFindingKeys ?? []) {
+      const bare = raw.includes("/") ? raw.split("/").pop()! : raw;
+      if (!verdictByKey.has(bare)) verdictByKey.set(bare, row.verdict);
+    }
+
+  return {
+    runId: targetRunId,
+    findings: rows.map((f) => ({
+      ...f,
+      verdict: f.verdict ?? verdictByKey.get(f.key) ?? (f.kind === "like" ? "double_down" : null),
+    })),
   };
 }
 

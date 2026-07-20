@@ -20,6 +20,23 @@ kpis:
   - NYDFS April 15 certification filed clean; zero reportable regulatory failures
   - Cyber-insurance premium change at renewal vs. market benchmark
   - Time-to-resolution on disputed/false-positive rating findings (target < 5 business days)
+primary_job: Defend the company's external security rating as a board- and customer-facing asset — hold the A and root-cause every dip before a customer, insurer, or regulator asks.
+profile: CISO · regulated financial services · NYDFS 500 / SEC / DORA
+forces:
+  driving:
+    - icon: 📉
+      key: Score defends deals
+      text: Sales says enterprise deals stall the moment a prospect's TPRM team pulls the company scorecard, so a clean, defensible rating is a revenue asset she cannot opt out of owning.
+    - icon: 📋
+      key: Evidence does double duty
+      text: Every monitoring artifact becomes an exhibit for the NYDFS April-15 certification, SEC Item 106 disclosure, and the DORA register, collapsing three audit cycles' prep into one platform.
+  holding:
+    - icon: ⚠️
+      key: Wrong-entity blame
+      text: A drop caused by the platform's own misattributed IPs or portfolio-company confusion lands on her before it is fixed, and she wears the credibility hit with the board and insurer.
+    - icon: 🔍
+      key: Undefendable methodology
+      text: Unannounced methodology changes swing grades she then has to explain to a regulator or skeptical director, so opacity in how the score is built makes her hesitant to lean on it harder.
 ---
 
 ## Role Context

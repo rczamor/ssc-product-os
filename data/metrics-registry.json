@@ -12,7 +12,8 @@
       "vizType": "trend line",
       "unit": "percent",
       "rhythmAware": true,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Underused-feature review"
     },
     {
       "id": 2,
@@ -26,7 +27,11 @@
       "unit": "ratio",
       "rhythmAware": true,
       "perFeature": true,
-      "restrictToRhythmClasses": ["daily-ops", "weekly-review"]
+      "restrictToRhythmClasses": [
+        "daily-ops",
+        "weekly-review"
+      ],
+      "route": "Engagement review"
     },
     {
       "id": 3,
@@ -39,7 +44,8 @@
       "vizType": "baseline band",
       "unit": "days",
       "rhythmAware": true,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Dormancy watch"
     },
     {
       "id": 4,
@@ -52,7 +58,8 @@
       "vizType": "funnel",
       "unit": "percent",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Funnel review"
     },
     {
       "id": 5,
@@ -65,7 +72,8 @@
       "vizType": "trend line",
       "unit": "minutes",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Regression check"
     },
     {
       "id": 6,
@@ -78,7 +86,8 @@
       "vizType": "cohort bars",
       "unit": "percent",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Enablement queue / CCB"
     },
     {
       "id": 7,
@@ -91,7 +100,8 @@
       "vizType": "dot plot",
       "unit": "days",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Enablement gap review · PMM"
     },
     {
       "id": 8,
@@ -104,7 +114,8 @@
       "vizType": "ranked bars",
       "unit": "index",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Monday standup owner"
     },
     {
       "id": 9,
@@ -118,7 +129,10 @@
       "unit": "percent",
       "rhythmAware": false,
       "perFeature": false,
-      "relatedFeatureKeys": ["ai-product-ops-workflows"]
+      "relatedFeatureKeys": [
+        "ai-product-ops-workflows"
+      ],
+      "route": "Prompt / eval review"
     },
     {
       "id": 10,
@@ -131,7 +145,8 @@
       "vizType": "diverging bars",
       "unit": "points",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Verbatim theme brief"
     },
     {
       "id": 11,
@@ -145,7 +160,10 @@
       "unit": "count",
       "rhythmAware": false,
       "perFeature": true,
-      "restrictToValueRoles": ["retention-driver"]
+      "restrictToValueRoles": [
+        "retention-driver"
+      ],
+      "route": "CSM play · Gainsight"
     },
     {
       "id": 12,
@@ -159,7 +177,10 @@
       "unit": "count",
       "rhythmAware": false,
       "perFeature": true,
-      "restrictToValueRoles": ["expansion-driver"]
+      "restrictToValueRoles": [
+        "expansion-driver"
+      ],
+      "route": "Routed to AE"
     },
     {
       "id": 13,
@@ -172,7 +193,8 @@
       "vizType": "scatter",
       "unit": "percent",
       "rhythmAware": false,
-      "perFeature": true
+      "perFeature": true,
+      "route": "Account-flagged CCB"
     },
     {
       "id": 14,
@@ -186,7 +208,8 @@
       "unit": "count",
       "rhythmAware": false,
       "perFeature": false,
-      "derived": true
+      "derived": true,
+      "route": "Quarterly portfolio review"
     }
   ]
 }

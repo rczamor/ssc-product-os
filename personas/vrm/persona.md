@@ -20,6 +20,23 @@ kpis:
   - Percentage of total portfolio under continuous monitoring (vs. assessed-only)
   - Average portfolio security rating trend, reported quarterly to the risk committee
   - Cost per assessment / assessments completed per analyst per quarter
+primary_job: Keep continuous eyes on all ~1,400 third parties and triage a Tier-1 score drop or breach signal the same day it appears, catching the third-party incident before it becomes hers.
+profile: Director, TPRM · regulated financial services · NYDFS 500 / Interagency Guidance
+forces:
+  driving:
+    - icon: 📡
+      key: Coverage beyond headcount
+      text: Four analysts can deeply assess only a fraction of 1,400 vendors each year, so continuous outside-in ratings are the only way to keep live eyes on the whole portfolio.
+    - icon: 🧾
+      key: Evidence over self-report
+      text: When a vendor's questionnaire answers smell like marketing, outside-in findings give her the leverage to push back and the examiner-ready paper trail her program is graded on.
+  holding:
+    - icon: 🎭
+      key: Borrowed credibility
+      text: Her program's authority rests on the score, so a misattributed IP or decayed finding that a vendor CISO publicly dismisses undermines her the moment she cites it.
+    - icon: 🔕
+      key: Alert noise fatigue
+      text: Score-change notifications without materiality context force manual triage her four analysts eventually start ignoring, making her doubt the monitoring she pays for.
 ---
 
 ## Role Context

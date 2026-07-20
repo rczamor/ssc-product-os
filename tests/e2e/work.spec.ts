@@ -32,6 +32,10 @@ test("work screen renders the track/view toggles and the timeline lanes", async 
   // The "How We Work" operating-system section renders below the board.
   await expect(page.getByRole("heading", { name: "How We Work" })).toBeVisible();
   await expect(page.getByText("Change Control Board").first()).toBeVisible();
+
+  // The Sync control degrades gracefully with no LINEAR_API_KEY (e2e env).
+  await page.getByRole("button", { name: "Sync" }).click();
+  await expect(page.getByText("Linear key not set")).toBeVisible();
 });
 
 test("nav links to Work from Planning", async ({ page }) => {

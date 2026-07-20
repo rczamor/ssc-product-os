@@ -125,6 +125,33 @@ export default function WorkBoard({
   const [view, setView] = useState<View>("timeline");
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
   const [fridayOpen, setFridayOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  // Pull the latest issues from the SSC-ProductOS Linear project into the cache,
+  // then re-read the board. 503 (no LINEAR_API_KEY) degrades to a message rather
+  // than an error — the board just keeps showing whatever was last cached.
+  async function syncBoard() {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch("/api/linear/sync", { method: "POST" });
+      if (res.status === 503) {
+        setSyncMsg("Linear key not set");
+      } else if (!res.ok) {
+        setSyncMsg("sync failed");
+      } else {
+        const data = (await res.json().catch(() => ({}))) as { synced?: number };
+        setSyncMsg(typeof data.synced === "number" ? `synced ${data.synced} issues` : "synced");
+        router.refresh();
+      }
+    } catch {
+      setSyncMsg("sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const now = useMemo(() => new Date(nowIso), [nowIso]);
 
@@ -169,8 +196,17 @@ export default function WorkBoard({
         <div className="flex items-center gap-[10px]">
           <div className="flex items-center gap-[7px] font-mono text-[11px] text-ink-5">
             <span className="h-[6px] w-[6px] rounded-full bg-green" />
-            <span suppressHydrationWarning>{relSynced(lastSyncedAt)}</span>
+            <span suppressHydrationWarning>{syncMsg ?? relSynced(lastSyncedAt)}</span>
           </div>
+          <button
+            onClick={syncBoard}
+            disabled={syncing}
+            title="Pull the latest issues from the SSC-ProductOS Linear project"
+            className="flex cursor-pointer items-center gap-[6px] rounded-[8px] border border-line-3 bg-card px-[12px] py-2 text-[12.5px] font-semibold text-ink-2 hover:border-ink-7 disabled:cursor-default disabled:opacity-60"
+          >
+            <span className={syncing ? "inline-block animate-spin" : "inline-block"}>⟳</span>
+            {syncing ? "Syncing…" : "Sync"}
+          </button>
           <button
             onClick={() => setFridayOpen(true)}
             className="flex cursor-pointer items-center gap-[7px] rounded-[8px] border border-line-3 bg-card px-[13px] py-2 text-[12.5px] font-semibold text-ink-2 hover:border-ink-7"

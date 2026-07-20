@@ -1,0 +1,85 @@
+import { describe, expect, it } from "vitest";
+import { buildTimeline, phaseOf, trackOf } from "@/lib/work-board";
+import type { WorkIssue } from "@/lib/db/queries";
+
+const PHASES = [{ label: "phase:week-1" }, { label: "phase:week-2" }];
+
+const issue = (over: Partial<WorkIssue>): WorkIssue => ({
+  id: "id",
+  identifier: "TRZ-1",
+  title: "title",
+  description: null,
+  stateName: "Todo",
+  stateType: "unstarted",
+  priority: 0,
+  labels: [],
+  parentId: null,
+  url: null,
+  dueDate: null,
+  ...over,
+});
+
+describe("trackOf / phaseOf", () => {
+  it("reads track and phase from labels", () => {
+    const i = issue({ labels: ["track:external", "phase:week-1", "origin:matrix"] });
+    expect(trackOf(i)).toBe("external");
+    expect(phaseOf(i)).toBe("phase:week-1");
+  });
+
+  it("returns null when no matching label is present", () => {
+    const i = issue({ labels: ["origin:matrix"] });
+    expect(trackOf(i)).toBeNull();
+    expect(phaseOf(i)).toBeNull();
+  });
+});
+
+describe("buildTimeline", () => {
+  it("a sub-issue follows its epic through the track filter even when its own labels differ", () => {
+    // The epic is internal (a role-plan item); a human relabeled just the
+    // sub-issue to track:external in Linear. Filtering by "internal" must still
+    // show the sub-issue under its epic — the epic's track decides inclusion,
+    // not the child's own labels.
+    const epic = issue({
+      id: "epic-1",
+      title: "Role-plan epic",
+      labels: ["track:internal", "phase:week-1"],
+    });
+    const child = issue({
+      id: "child-1",
+      parentId: "epic-1",
+      title: "Relabeled sub-issue",
+      labels: ["track:external"],
+    });
+
+    const timeline = buildTimeline([epic, child], "internal", PHASES);
+    expect(timeline.groups).toHaveLength(1);
+    expect(timeline.groups[0].epics).toHaveLength(1);
+    expect(timeline.groups[0].epics[0].epic.id).toBe("epic-1");
+    // The child must still be present — this is the exact case that regressed
+    // when children were filtered independently of their epic.
+    expect(timeline.groups[0].epics[0].children.map((c) => c.id)).toEqual(["child-1"]);
+  });
+
+  it("excludes an epic (and its children) whose own track doesn't match the filter", () => {
+    const epic = issue({ id: "e", labels: ["track:internal", "phase:week-1"] });
+    const child = issue({ id: "c", parentId: "e", labels: ["track:internal"] });
+    const timeline = buildTimeline([epic, child], "external", PHASES);
+    expect(timeline.groups).toHaveLength(0);
+  });
+
+  it("groups epics by phase label and buckets unlabeled epics as unscheduled", () => {
+    const a = issue({ id: "a", labels: ["phase:week-1"] });
+    const b = issue({ id: "b", labels: ["phase:week-2"] });
+    const c = issue({ id: "c", labels: [] });
+    const timeline = buildTimeline([a, b, c], "all", PHASES);
+    expect(timeline.groups.map((g) => g.phase)).toEqual(["phase:week-1", "phase:week-2"]);
+    expect(timeline.unscheduled.map((i) => i.id)).toEqual(["c"]);
+  });
+
+  it("never shows a sub-issue as a top-level unscheduled item", () => {
+    const epic = issue({ id: "e", labels: [] }); // unscheduled epic (no phase)
+    const child = issue({ id: "c", parentId: "e", labels: [] });
+    const timeline = buildTimeline([epic, child], "all", PHASES);
+    expect(timeline.unscheduled.map((i) => i.id)).toEqual(["e"]);
+  });
+});

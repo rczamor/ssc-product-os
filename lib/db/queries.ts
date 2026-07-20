@@ -5,6 +5,8 @@ import {
   deliverables,
   feedbackItems,
   findings,
+  linearCache,
+  linearSyncState,
   personaEvaluations,
   reviews,
   runs,
@@ -66,6 +68,53 @@ export async function listRunsWithCounts(limit = 50): Promise<RunWithCounts[]> {
     dislikeCount: Number(countByRun.get(run.id)?.dislikes ?? 0),
     hasDeliverable: hasDeliverable.has(run.id),
   }));
+}
+
+export interface WorkIssue {
+  id: string;
+  identifier: string;
+  title: string;
+  description: string | null;
+  stateName: string;
+  stateType: string;
+  priority: number;
+  labels: string[];
+  parentId: string | null;
+  url: string | null;
+  dueDate: string | null;
+}
+
+export interface WorkBoard {
+  issues: WorkIssue[];
+  lastSyncedAt: Date | null;
+  issueCount: number;
+}
+
+/** Read the cached Linear board (Work screen). Empty until the first sync. */
+export async function getWorkBoard(): Promise<WorkBoard> {
+  const db = await getDb();
+  const rows = await db.select().from(linearCache);
+  const [sync] = await db
+    .select()
+    .from(linearSyncState)
+    .where(eq(linearSyncState.id, "project"));
+  return {
+    issues: rows.map((r) => ({
+      id: r.id,
+      identifier: r.identifier,
+      title: r.title,
+      description: r.description,
+      stateName: r.stateName,
+      stateType: r.stateType,
+      priority: r.priority,
+      labels: r.labels ?? [],
+      parentId: r.parentId,
+      url: r.url,
+      dueDate: r.dueDate,
+    })),
+    lastSyncedAt: sync?.lastSyncedAt ?? null,
+    issueCount: sync?.issueCount ?? rows.length,
+  };
 }
 
 export interface FeedbackRow {

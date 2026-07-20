@@ -14,6 +14,8 @@ import { GET as screenshotGet } from "@/app/api/screenshots/[id]/route";
 import { POST as reviewsPost } from "@/app/api/runs/[id]/reviews/route";
 import { POST as humanFindingPost } from "@/app/api/runs/[id]/findings/route";
 import { POST as approvePost } from "@/app/api/runs/[id]/approve/route";
+import { GET as ticketsPreviewGet, POST as ticketsPushPost } from "@/app/api/runs/[id]/tickets/push/route";
+import { POST as ticketsDraftPost } from "@/app/api/runs/[id]/tickets/draft/route";
 import { isRunApproved } from "@/lib/db/queries";
 
 function jsonReq(url: string, method: string, body?: unknown): NextRequest {
@@ -273,10 +275,29 @@ describe("reviewer layer + approval gate", () => {
     expect(noJtbd.status).toBe(400);
   });
 
-  it("gates the matrix push: no approval before Approve, approval is idempotent", async () => {
+  it("gates the matrix push: no approval before Approve, approval is idempotent, no draft materializes pre-approval", async () => {
     const id = await seededRunId();
     // The hard gate: nothing may push before a human approval exists.
     expect(await isRunApproved(id)).toBe(false);
+
+    // Pre-approval: the push route refuses, and previewing does not draft yet.
+    const preApprovalPush = await ticketsPushPost(
+      jsonReq(`/api/runs/${id}/tickets/push`, "POST"),
+      params(id),
+    );
+    expect(preApprovalPush.status).toBe(403);
+
+    const preview = await ticketsPreviewGet(jsonReq(`/api/runs/${id}/tickets/push`, "GET"), params(id));
+    const previewBody = await preview.json();
+    expect(previewBody.approved).toBe(false);
+    expect(previewBody.draft).toBeNull();
+
+    // GET must never mutate: even calling it pre-approval leaves no draft row.
+    const draftAttemptPreApproval = await ticketsDraftPost(
+      jsonReq(`/api/runs/${id}/tickets/draft`, "POST"),
+      params(id),
+    );
+    expect((await draftAttemptPreApproval.json()).draft).toBeNull();
 
     const first = await approvePost(jsonReq(`/api/runs/${id}/approve`, "POST"), params(id));
     expect(first.status).toBe(200);
@@ -286,5 +307,33 @@ describe("reviewer layer + approval gate", () => {
     // Approving again is a no-op, not a duplicate.
     const second = await approvePost(jsonReq(`/api/runs/${id}/approve`, "POST"), params(id));
     expect((await second.json()).alreadyApproved).toBe(true);
+
+    // Post-approval, GET alone still shows no draft — materializing it is a
+    // POST-only action (never a GET side effect).
+    const beforeDraftPost = await ticketsPreviewGet(
+      jsonReq(`/api/runs/${id}/tickets/push`, "GET"),
+      params(id),
+    );
+    expect((await beforeDraftPost.json()).draft).toBeNull();
+
+    // The dedicated draft POST materializes it from the deliverable's KFD table.
+    const draftPost = await ticketsDraftPost(jsonReq(`/api/runs/${id}/tickets/draft`, "POST"), params(id));
+    const draftBody = await draftPost.json();
+    expect(draftBody.approved).toBe(true);
+    expect(draftBody.draft.tickets.length).toBeGreaterThan(0);
+
+    // Now GET reflects the materialized draft.
+    const afterApproval = await ticketsPreviewGet(
+      jsonReq(`/api/runs/${id}/tickets/push`, "GET"),
+      params(id),
+    );
+    const afterBody = await afterApproval.json();
+    expect(afterBody.approved).toBe(true);
+    expect(afterBody.draft.tickets.length).toBeGreaterThan(0);
+
+    // No LINEAR_API_KEY in the test env, so the push is refused with 503, not silently no-op'd.
+    const push = await ticketsPushPost(jsonReq(`/api/runs/${id}/tickets/push`, "POST"), params(id));
+    expect(push.status).toBe(503);
+    expect((await push.json()).draftReady).toBe(true);
   });
 });

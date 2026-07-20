@@ -7,6 +7,7 @@ import { formatTimestamp, isUuid } from "@/lib/validation";
 import { PersonaBadge, RootCauseBadge, StatusBadge, VerdictBadge } from "@/components/Badges";
 import AccuracyStrip from "@/components/AccuracyStrip";
 import ApproveMatrix from "@/components/ApproveMatrix";
+import PushToLinear from "@/components/PushToLinear";
 import ReviewControls from "@/components/ReviewControls";
 import AddHumanFinding from "@/components/AddHumanFinding";
 
@@ -106,6 +107,7 @@ export default async function RunDetailPage({
               approvedBy={approval?.approvedBy ?? null}
               approvedAt={approval ? approval.approvedAt?.toString() ?? null : null}
             />
+            <PushToLinear runId={run.id} approved={Boolean(approval)} />
           </div>
 
           <div className="mt-4 grid gap-6 md:grid-cols-2">

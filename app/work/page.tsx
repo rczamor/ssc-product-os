@@ -1,11 +1,12 @@
-import { getWorkBoard } from "@/lib/db/queries";
+import { getLatestFridayUpdate, getWorkBoard } from "@/lib/db/queries";
 import { isLinearConfigured } from "@/lib/linear";
 import WorkBoard from "@/components/WorkBoard";
+import FridayUpdate from "@/components/FridayUpdate";
 
 export const dynamic = "force-dynamic";
 
 export default async function WorkPage() {
-  const board = await getWorkBoard();
+  const [board, fridayUpdate] = await Promise.all([getWorkBoard(), getLatestFridayUpdate()]);
 
   return (
     <div className="space-y-5">
@@ -30,6 +31,11 @@ export default async function WorkPage() {
         issues={board.issues}
         lastSyncedAt={board.lastSyncedAt ? board.lastSyncedAt.toISOString() : null}
         issueCount={board.issueCount}
+      />
+
+      <FridayUpdate
+        update={fridayUpdate}
+        boardLastSyncedAt={board.lastSyncedAt ? board.lastSyncedAt.toISOString() : null}
       />
     </div>
   );

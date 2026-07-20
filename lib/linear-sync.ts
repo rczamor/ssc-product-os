@@ -64,6 +64,7 @@ export async function syncProjectToCache(db: Db): Promise<{ count: number; skipp
       url: issue.url ?? null,
       dueDate: issue.dueDate ?? null,
       createdAt: issue.createdAt ?? null,
+      completedAt: issue.completedAt ?? null,
       syncedAt: new Date(),
     };
   }

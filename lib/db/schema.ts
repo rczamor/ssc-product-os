@@ -277,6 +277,9 @@ export const linearCache = pgTable(
     url: text("url"),
     dueDate: text("due_date"),
     createdAt: timestamp("created_at", { withTimezone: true }),
+    /** When the issue moved to a completed state, per Linear — null until then.
+     *  Drives the Friday Update's "shipped in the window" section. */
+    completedAt: timestamp("completed_at", { withTimezone: true }),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("linear_cache_parent_idx").on(t.parentId)],
@@ -324,3 +327,18 @@ export const metricObservations = pgTable(
     index("metric_observations_metric_idx").on(t.metricId),
   ],
 );
+
+/**
+ * The generated Friday Product & Engineering Update (Phase 5), single-row
+ * ("latest") singleton — upserted atomically (same idiom as
+ * `linearSyncState`), never delete-then-insert, so two overlapping
+ * generations can't race each other into a missing row or a primary-key
+ * violation. `body` is the full validated FridayUpdate (schemas/friday.ts);
+ * regenerating overwrites it wholesale rather than accumulating a history,
+ * matching the spec's "regenerating replaces cleanly" acceptance criterion.
+ */
+export const fridayUpdates = pgTable("friday_updates", {
+  id: text("id").primaryKey().default("latest"),
+  body: jsonb("body").notNull(),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+});

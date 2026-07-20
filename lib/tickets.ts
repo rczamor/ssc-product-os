@@ -1,5 +1,6 @@
 import { TICKET_PRIORITY, type Ticket, type TicketDraft } from "@/lib/schemas/ticket";
 import type { KfdRow, PersonaSlug } from "@/lib/schemas/findings";
+import { clip } from "@/lib/validation";
 
 /** Lowercase slug from arbitrary text, bounded, with a fallback. */
 function slugify(text: string, fallback = "item"): string {
@@ -18,18 +19,12 @@ function phaseForEffort(effort: string): string {
   return "phase:week-2";
 }
 
-/**
- * Clip text to a max length. `ensureTicketDraft` reads a run's kfdTable via a
- * raw cast (it's already-published, previously-validated deliverable JSON, not
- * re-validated against KfdRowSchema on read), and that schema's text fields
- * have no upper bound. Rather than trust upstream length, every title/
- * description this module builds is clipped at the exact point of return so
- * the produced Ticket always satisfies TicketSchema's bounds regardless of how
- * long the source KFD text is.
- */
-function clip(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
+// `ensureTicketDraft` reads a run's kfdTable via a raw cast (it's already-
+// published, previously-validated deliverable JSON, not re-validated against
+// KfdRowSchema on read), and that schema's text fields have no upper bound.
+// Rather than trust upstream length, every title/description this module
+// builds is clip()'d at the exact point of return so the produced Ticket
+// always satisfies TicketSchema's bounds regardless of source text length.
 
 /**
  * Deterministically map an approved Kill/Fix/Double-Down matrix into Linear

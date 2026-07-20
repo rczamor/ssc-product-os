@@ -27,3 +27,21 @@ test("nav links to Work from Planning", async ({ page }) => {
   await page.getByRole("link", { name: "Work" }).click();
   await expect(page).toHaveURL(/\/work$/);
 });
+
+test("Friday Update generates from the live board + dataset and regenerates cleanly", async ({ page }) => {
+  await login(page);
+  await page.goto("/work");
+
+  await expect(page.getByRole("heading", { name: "Friday Product & Engineering Update" })).toBeVisible();
+  await expect(page.getByText("Not generated yet.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Generate update" }).click();
+  await expect(page.getByText(/^Generated /)).toBeVisible();
+  await expect(page.getByText("Customer impact")).toBeVisible();
+  await expect(page.getByText("One win to celebrate")).toBeVisible();
+
+  // Regenerating replaces cleanly: still exactly one Friday Update section, not a duplicate.
+  await page.getByRole("button", { name: "Regenerate update" }).click();
+  await expect(page.getByRole("heading", { name: "Friday Product & Engineering Update" })).toHaveCount(1);
+  await expect(page.getByText(/^Generated /)).toHaveCount(1);
+});

@@ -70,8 +70,10 @@ export function buildHealthBoard(features: TaxonomyFeature[]): HealthBoard {
 }
 
 /** Whether a lower or higher value is the "worse" direction for a metric —
- *  used to rank tripped examples so a card surfaces its worst offenders first. */
-const WORSE_DIRECTION: Record<number, "lower" | "higher"> = {
+ *  used to rank tripped examples so a card surfaces its worst offenders first,
+ *  and reused by lib/friday-update.ts to find each metric's genuine trend
+ *  direction (so "improvement" isn't hardcoded to any one metric). */
+export const WORSE_DIRECTION: Record<number, "lower" | "higher"> = {
   1: "lower", // Feature Adoption Rate
   2: "lower", // Engagement
   3: "higher", // Usage Frequency (days between uses)

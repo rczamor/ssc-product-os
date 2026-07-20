@@ -36,6 +36,13 @@
       "when": 1784508092447,
       "tag": "0004_milky_flatman",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784511810580,
+      "tag": "0005_friday_updates_and_completed_at",
+      "breakpoints": true
     }
   ]
 }

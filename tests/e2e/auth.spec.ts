@@ -24,5 +24,7 @@ test("wrong password shows an error and stays on login", async ({ page }) => {
 
 test("right password lands on the dashboard", async ({ page }) => {
   await login(page);
-  await expect(page.getByText("Trigger a new evaluation run")).toBeVisible();
+  // The dashboard is now the Plan screen — the eval-runs trigger UI is gone.
+  await expect(page.getByRole("heading", { name: "Plan" })).toBeVisible();
+  await expect(page.getByText("Feedback sources")).toBeVisible();
 });

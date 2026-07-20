@@ -8,5 +8,6 @@ export async function login(page: Page): Promise<void> {
   await page.getByPlaceholder("Admin email").fill(ADMIN_EMAIL);
   await page.getByPlaceholder("Admin password").fill(ADMIN_PASSWORD);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Evaluation runs" })).toBeVisible();
+  // After login the app lands on the Plan screen.
+  await expect(page.getByRole("heading", { name: "Plan" })).toBeVisible();
 }

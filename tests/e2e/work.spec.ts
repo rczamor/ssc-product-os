@@ -1,24 +1,28 @@
 import { expect, test } from "@playwright/test";
 import { login } from "./helpers";
 
-test("work screen renders with Kanban/timeline toggle and internal/external filter", async ({
-  page,
-}) => {
+test("work screen renders the track/view toggles and the timeline lanes", async ({ page }) => {
   await login(page);
   await page.goto("/work");
 
   await expect(page.getByRole("heading", { name: "Work" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kanban" })).toBeVisible();
+
+  // Track toggle is ProductOS / SSC Platform; view toggle is Timeline / Kanban.
+  await expect(page.getByRole("button", { name: "ProductOS" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "SSC Platform" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Timeline" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "External (product)" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Internal (OS + role)" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kanban" })).toBeVisible();
 
-  // No LINEAR_API_KEY in the e2e env and nothing synced yet, so the empty state renders.
-  await expect(page.getByText("No Linear issues cached yet")).toBeVisible();
+  // No LINEAR_API_KEY in the e2e env and nothing synced yet, so the (empty)
+  // timeline lanes render — including the "This quarter" axis label — with no
+  // "No Linear issues cached yet" empty-state text.
+  await expect(page.getByText("This quarter").first()).toBeVisible();
 
-  // Switching views/filters doesn't error even with an empty board.
+  // Switching views/tracks doesn't error even with an empty board.
+  await page.getByRole("button", { name: "Kanban" }).click();
+  await page.getByRole("button", { name: "SSC Platform" }).click();
   await page.getByRole("button", { name: "Timeline" }).click();
-  await page.getByRole("button", { name: "Internal (OS + role)" }).click();
+  await page.getByRole("button", { name: "ProductOS" }).click();
   await expect(page.getByRole("heading", { name: "Work" })).toBeVisible();
 });
 
@@ -28,20 +32,26 @@ test("nav links to Work from Planning", async ({ page }) => {
   await expect(page).toHaveURL(/\/work$/);
 });
 
-test("Friday Update generates from the live board + dataset and regenerates cleanly", async ({ page }) => {
+test("Friday Update generates in the slide-over and can be closed", async ({ page }) => {
   await login(page);
   await page.goto("/work");
 
-  await expect(page.getByRole("heading", { name: "Friday Product & Engineering Update" })).toBeVisible();
-  await expect(page.getByText("Not generated yet.")).toBeVisible();
+  // The Friday Update is now a right slide-over opened from the header button.
+  await page.getByRole("button", { name: "Generate Update" }).click();
 
-  await page.getByRole("button", { name: "Generate update" }).click();
-  await expect(page.getByText(/^Generated /)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Product & Engineering Update" }),
+  ).toBeVisible();
+
+  // It auto-generates from the live board + dataset: a generated timestamp plus
+  // the impact/win sections become visible.
+  await expect(page.getByText(/generated/)).toBeVisible();
   await expect(page.getByText("Customer impact")).toBeVisible();
   await expect(page.getByText("One win to celebrate")).toBeVisible();
 
-  // Regenerating replaces cleanly: still exactly one Friday Update section, not a duplicate.
-  await page.getByRole("button", { name: "Regenerate update" }).click();
-  await expect(page.getByRole("heading", { name: "Friday Product & Engineering Update" })).toHaveCount(1);
-  await expect(page.getByText(/^Generated /)).toHaveCount(1);
+  // The slide-over closes.
+  await page.getByRole("button", { name: "✕" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Product & Engineering Update" }),
+  ).toHaveCount(0);
 });

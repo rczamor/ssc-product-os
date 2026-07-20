@@ -7,6 +7,7 @@ import {
   findings,
   linearCache,
   linearSyncState,
+  metricObservations,
   personaEvaluations,
   reviews,
   runs,
@@ -17,6 +18,7 @@ import {
   INGESTION_SOURCES,
   type FeedbackSource,
 } from "@/lib/schemas/feedback";
+import type { MetricObservation } from "@/lib/schemas/metrics";
 import { isUuid } from "@/lib/validation";
 
 export interface RunWithCounts {
@@ -232,6 +234,23 @@ export async function isRunApproved(runId: string): Promise<boolean> {
     .where(eq(approvals.runId, runId))
     .limit(1);
   return rows.length > 0;
+}
+
+/** All generated metric observations for the Metrics tab (Phase 4). */
+export async function getMetricObservations(): Promise<MetricObservation[]> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      metricId: metricObservations.metricId,
+      featureKey: metricObservations.featureKey,
+      weekStart: metricObservations.weekStart,
+      value: metricObservations.value,
+      tripped: metricObservations.tripped,
+      triggerText: metricObservations.triggerText,
+    })
+    .from(metricObservations)
+    .orderBy(asc(metricObservations.weekStart));
+  return rows;
 }
 
 /** Full run detail (used by both the run-detail page and the runs/:id API). */

@@ -6,15 +6,24 @@ import { useState } from "react";
 export default function UserMenu({ initials, label }: { initials: string; label: string }) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState(false);
 
   async function logout() {
     setLoggingOut(true);
+    setError(false);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    await fetch("/api/auth/logout", { method: "POST", signal: controller.signal }).catch(() => {});
-    clearTimeout(timeout);
-    router.push("/login");
-    router.refresh();
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST", signal: controller.signal });
+      if (!res.ok) throw new Error(`logout failed (${res.status})`);
+      router.push("/login");
+      router.refresh();
+    } catch {
+      setError(true);
+      setLoggingOut(false);
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   return (
@@ -28,9 +37,12 @@ export default function UserMenu({ initials, label }: { initials: string; label:
       <button
         onClick={logout}
         disabled={loggingOut}
-        className="whitespace-nowrap border-l border-line pl-3.5 text-xs font-medium text-ink-4 hover:text-ink disabled:opacity-50"
+        title={error ? "Logout failed — try again" : undefined}
+        className={`whitespace-nowrap border-l pl-3.5 text-xs font-medium hover:text-ink disabled:opacity-50 ${
+          error ? "border-red/30 text-red" : "border-line text-ink-4"
+        }`}
       >
-        {loggingOut ? "Logging out…" : "Log out"}
+        {loggingOut ? "Logging out…" : error ? "Log out (failed, retry)" : "Log out"}
       </button>
     </div>
   );

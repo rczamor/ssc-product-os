@@ -5,7 +5,7 @@ test("metrics screen renders 14 cards, tripped triggers, and the health board", 
   await login(page);
   await page.goto("/metrics");
 
-  await expect(page.getByRole("heading", { name: "Metrics" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Measure" })).toBeVisible();
   await expect(page.getByText(/feature×metric trigger.*currently tripped/)).toBeVisible();
 
   // All 14 Appendix A metrics render as cards (13 generated + the derived health board).
@@ -27,8 +27,8 @@ test("metrics screen renders 14 cards, tripped triggers, and the health board", 
   await expect(page.getByText("Action trigger").first()).toBeVisible();
 });
 
-test("nav links to Metrics from Planning", async ({ page }) => {
+test("nav links to Measure from Plan", async ({ page }) => {
   await login(page);
-  await page.getByRole("link", { name: "Metrics" }).click();
+  await page.getByRole("link", { name: "Measure" }).click();
   await expect(page).toHaveURL(/\/metrics$/);
 });

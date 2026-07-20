@@ -27,7 +27,7 @@ export default function CancelRequestButton({ id }: { id: string }) {
     <button
       onClick={cancel}
       disabled={busy}
-      className="text-xs text-slate-400 underline-offset-2 hover:text-red-600 hover:underline disabled:opacity-50"
+      className="text-xs text-ink-5 underline-offset-2 hover:text-red hover:underline disabled:opacity-50"
     >
       {busy ? "…" : "cancel"}
     </button>

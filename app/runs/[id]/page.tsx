@@ -77,28 +77,28 @@ export default async function RunDetailPage({
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center gap-3">
-        <Link href="/" className="text-sm text-slate-400 hover:text-slate-600">
+        <Link href="/" className="text-sm text-ink-5 hover:text-ink-3">
           ← runs
         </Link>
-        <h1 className="text-lg font-semibold">Run {run.id.slice(0, 8)}</h1>
+        <h1 className="text-lg font-semibold text-ink">Run {run.id.slice(0, 8)}</h1>
         <StatusBadge status={run.status} />
-        <span className="text-sm text-slate-500">
+        <span className="text-sm text-ink-4">
           {formatTimestamp(run.startedAt)} · trigger: {run.trigger}
         </span>
         {run.langfuseTraceId && (
-          <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-500">
+          <span className="rounded-md border border-line bg-card-alt px-2 py-0.5 font-mono text-xs text-ink-4">
             langfuse trace: {run.langfuseTraceId}
           </span>
         )}
-        {run.error && <span className="text-sm text-red-600">{run.error}</span>}
+        {run.error && <span className="text-sm text-red">{run.error}</span>}
       </div>
 
       <AccuracyStrip accuracy={accuracy} />
 
       {deliverable && (
-        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[11px] border border-line bg-card p-6 shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">Prompt-1 Deliverable</h2>
+            <h2 className="text-base font-semibold text-ink">Prompt-1 Deliverable</h2>
           </div>
           <div className="mt-4">
             <ApproveMatrix
@@ -112,41 +112,41 @@ export default async function RunDetailPage({
 
           <div className="mt-4 grid gap-6 md:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold text-emerald-700">3 things we like</h3>
+              <h3 className="text-sm font-semibold text-green-dark">3 things we like</h3>
               <ol className="mt-2 space-y-3">
                 {(deliverable.likes as DeliverableItem[]).map((item, i) => (
-                  <li key={i} className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+                  <li key={i} className="rounded-lg border border-green/25 bg-green/[0.04] p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-sm font-medium text-ink-2">{item.title}</p>
                       <span className="flex shrink-0 gap-1">
                         {item.personas.map((p) => (
                           <PersonaBadge key={p} persona={p} />
                         ))}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{item.detail}</p>
+                    <p className="mt-1 text-sm text-ink-3">{item.detail}</p>
                   </li>
                 ))}
               </ol>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-red-700">5 things we do not like</h3>
+              <h3 className="text-sm font-semibold text-red">5 things we do not like</h3>
               <ol className="mt-2 space-y-3">
                 {(deliverable.dislikes as DeliverableItem[]).map((item, i) => (
-                  <li key={i} className="rounded-lg border border-red-100 bg-red-50/40 p-3">
+                  <li key={i} className="rounded-lg border border-red/20 bg-red/[0.03] p-3">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium">{item.title}</p>
+                      <p className="text-sm font-medium text-ink-2">{item.title}</p>
                       <span className="flex shrink-0 gap-1">
                         {item.personas.map((p) => (
                           <PersonaBadge key={p} persona={p} />
                         ))}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-slate-600">{item.detail}</p>
+                    <p className="mt-1 text-sm text-ink-3">{item.detail}</p>
                     {item.customerPain && (
-                      <p className="mt-1 text-sm italic text-slate-500">“{item.customerPain}”</p>
+                      <p className="mt-1 text-sm italic text-ink-4">“{item.customerPain}”</p>
                     )}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-4">
                       <RootCauseBadge rootCause={item.rootCause ?? null} />
                       {item.effort && <span>Effort: {item.effort}</span>}
                       {item.firstAction && <span>First action: {item.firstAction}</span>}
@@ -157,28 +157,28 @@ export default async function RunDetailPage({
             </div>
           </div>
 
-          <h3 className="mt-8 text-sm font-semibold">Kill / Fix / Double Down</h3>
+          <h3 className="mt-8 text-sm font-semibold text-ink">Kill / Fix / Double Down</h3>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="text-xs uppercase tracking-wide text-slate-400">
-                <tr className="border-b border-slate-200">
-                  <th className="py-2 pr-3 font-medium">Item</th>
-                  <th className="py-2 pr-3 font-medium">Verdict</th>
-                  <th className="py-2 pr-3 font-medium">Customer pain</th>
-                  <th className="py-2 pr-3 font-medium">Personas</th>
-                  <th className="py-2 pr-3 font-medium">Root cause</th>
-                  <th className="py-2 pr-3 font-medium">Effort</th>
-                  <th className="py-2 font-medium">First action this week</th>
+              <thead className="text-[10px] uppercase tracking-[0.08em] text-ink-5">
+                <tr className="border-b border-line">
+                  <th className="py-2 pr-3 font-semibold">Item</th>
+                  <th className="py-2 pr-3 font-semibold">Verdict</th>
+                  <th className="py-2 pr-3 font-semibold">Customer pain</th>
+                  <th className="py-2 pr-3 font-semibold">Personas</th>
+                  <th className="py-2 pr-3 font-semibold">Root cause</th>
+                  <th className="py-2 pr-3 font-semibold">Effort</th>
+                  <th className="py-2 font-semibold">First action this week</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 align-top">
+              <tbody className="divide-y divide-line-2 align-top">
                 {(deliverable.kfdTable as KfdRowShape[]).map((row, i) => (
                   <tr key={i}>
-                    <td className="py-3 pr-3 font-medium">{row.item}</td>
+                    <td className="py-3 pr-3 font-medium text-ink-2">{row.item}</td>
                     <td className="py-3 pr-3">
                       <VerdictBadge verdict={row.verdict} />
                     </td>
-                    <td className="py-3 pr-3 text-slate-600">{row.customerPain}</td>
+                    <td className="py-3 pr-3 text-ink-3">{row.customerPain}</td>
                     <td className="py-3 pr-3">
                       <span className="flex flex-wrap gap-1">
                         {row.personas.map((p) => (
@@ -189,8 +189,8 @@ export default async function RunDetailPage({
                     <td className="py-3 pr-3">
                       <RootCauseBadge rootCause={row.rootCause} />
                     </td>
-                    <td className="py-3 pr-3">{row.effort}</td>
-                    <td className="py-3 text-slate-600">{row.firstAction}</td>
+                    <td className="py-3 pr-3 text-ink-3">{row.effort}</td>
+                    <td className="py-3 text-ink-3">{row.firstAction}</td>
                   </tr>
                 ))}
               </tbody>
@@ -207,20 +207,20 @@ export default async function RunDetailPage({
         return (
           <section
             key={persona}
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+            className="rounded-[11px] border border-line bg-card p-6 shadow-card"
           >
             <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-base font-semibold">{PERSONA_LABELS[persona]}</h2>
+              <h2 className="text-base font-semibold text-ink">{PERSONA_LABELS[persona]}</h2>
               {evaluation && <StatusBadge status={evaluation.status} />}
               <Link
                 href={`/personas#${persona}`}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-xs text-accent hover:underline"
               >
                 persona profile →
               </Link>
             </div>
             {evaluation?.summary && (
-              <p className="mt-2 max-w-3xl text-sm text-slate-600">{evaluation.summary}</p>
+              <p className="mt-2 max-w-3xl text-sm text-ink-3">{evaluation.summary}</p>
             )}
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -228,29 +228,25 @@ export default async function RunDetailPage({
                 <article
                   key={f.id}
                   className={`rounded-lg border p-4 ${
-                    f.kind === "like"
-                      ? "border-emerald-100 bg-emerald-50/40"
-                      : "border-red-100 bg-red-50/30"
+                    f.kind === "like" ? "border-green/20 bg-green/[0.03]" : "border-red/15 bg-red/[0.02]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-sm font-medium">{f.title}</h3>
+                    <h3 className="text-sm font-medium text-ink-2">{f.title}</h3>
                     <span className="flex shrink-0 items-center gap-1">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                        className={`rounded-md border px-2 py-0.5 text-[11px] font-medium ${
                           f.origin === "human"
-                            ? "bg-indigo-100 text-indigo-700"
-                            : "bg-slate-100 text-slate-500"
+                            ? "border-accent/28 bg-accent/[0.07] text-accent"
+                            : "border-line text-ink-5"
                         }`}
                         title={f.origin === "human" ? "Added by a human reviewer" : "Produced by an agent"}
                       >
                         {f.origin === "human" ? "Human" : "Agent"}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          f.kind === "like"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
+                        className={`rounded-md border px-2 py-0.5 text-xs font-semibold ${
+                          f.kind === "like" ? "verdict-double_down" : "verdict-kill"
                         }`}
                       >
                         {f.kind}
@@ -258,19 +254,19 @@ export default async function RunDetailPage({
                       </span>
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{f.detail}</p>
+                  <p className="mt-1 text-sm text-ink-3">{f.detail}</p>
                   {f.customerPain && (
-                    <p className="mt-1 text-sm italic text-slate-500">“{f.customerPain}”</p>
+                    <p className="mt-1 text-sm italic text-ink-4">“{f.customerPain}”</p>
                   )}
                   {f.jtbd && (
-                    <p className="mt-1 text-xs text-slate-400">JTBD: {f.jtbd}</p>
+                    <p className="mt-1 text-xs text-ink-5">JTBD: {f.jtbd}</p>
                   )}
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-4">
                     <RootCauseBadge rootCause={f.rootCause} />
                     {f.effort && <span>Effort: {f.effort}</span>}
                     {f.firstAction && <span>First action: {f.firstAction}</span>}
                     {f.specificityScore != null && (
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5">
+                      <span className="rounded-md border border-line bg-card-alt px-1.5 py-0.5 font-mono">
                         judge: spec {f.specificityScore} · act {f.actionabilityScore}
                       </span>
                     )}
@@ -297,7 +293,7 @@ export default async function RunDetailPage({
 
             {personaShots.length > 0 && (
               <div className="mt-5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-5">
                   Screenshots ({personaShots.length})
                 </h3>
                 <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -312,10 +308,10 @@ export default async function RunDetailPage({
                       <img
                         src={`/api/screenshots/${s.id}`}
                         alt={s.label}
-                        className="aspect-video w-full rounded-lg border border-slate-200 object-cover object-top group-hover:border-indigo-300"
+                        className="aspect-video w-full rounded-lg border border-line object-cover object-top group-hover:border-accent/50"
                         loading="lazy"
                       />
-                      <p className="mt-1 truncate text-xs text-slate-500">{s.label}</p>
+                      <p className="mt-1 truncate text-xs text-ink-4">{s.label}</p>
                     </a>
                   ))}
                 </div>

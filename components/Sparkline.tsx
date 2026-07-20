@@ -6,7 +6,7 @@ export default function Sparkline({
   values,
   width = 160,
   height = 36,
-  strokeClassName = "stroke-indigo-500",
+  strokeClassName = "stroke-accent",
 }: {
   values: number[];
   width?: number;
@@ -14,7 +14,7 @@ export default function Sparkline({
   strokeClassName?: string;
 }) {
   if (values.length < 2) {
-    return <div style={{ width, height }} className="text-xs text-slate-300" />;
+    return <div style={{ width, height }} className="text-xs text-ink-6" />;
   }
   const min = Math.min(...values);
   const max = Math.max(...values);

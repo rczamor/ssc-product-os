@@ -157,6 +157,39 @@ describe("buildFridayUpdate", () => {
     expect(update.oneWin).not.toMatch(/Churn Risk Watchlist/);
   });
 
+  it("credits a genuine rise in Expansion PQLs (metric 12) as a real win, not a decline", () => {
+    // Regression: lib/metrics.ts's WORSE_DIRECTION[12] is "higher", but only
+    // for a DIFFERENT purpose (ranking which tripped examples are most
+    // notable) — its own comment says "a trip is a good signal, but 'more' is
+    // the notable direction". Reusing that map for trend-improvement scoring
+    // inverted this one metric's verdict: a genuine rise (more expansion
+    // opportunities, good news) was scored as a decline. GOOD_DIRECTION[12]
+    // fixes this by being defined on its own, correct terms.
+    const synthetic = [
+      { metricId: 12, featureKey: "risk-quantification", weekStart: "2026-06-01", value: 2, tripped: false, triggerText: null },
+      { metricId: 12, featureKey: "risk-quantification", weekStart: "2026-06-08", value: 10, tripped: false, triggerText: null },
+    ];
+    const update = buildFridayUpdate(
+      { issues: [], observations: synthetic, registry, features, findings: [], reviews: [], runsCount: 0 },
+      NOW,
+    );
+    expect(update.oneWin).toMatch(/Expansion PQLs improved from 2\.0 to 10\.0/);
+  });
+
+  it("daysLate is independent of the time-of-day the update is generated, only the calendar date", () => {
+    const late = issue({ id: "a", identifier: "TRZ-400", stateType: "started", dueDate: "2026-07-10" });
+    const midnight = buildFridayUpdate(
+      { issues: [late], observations, registry, features, findings: [], reviews: [], runsCount: 0 },
+      new Date("2026-07-24T00:00:00Z"),
+    );
+    const evening = buildFridayUpdate(
+      { issues: [late], observations, registry, features, findings: [], reviews: [], runsCount: 0 },
+      new Date("2026-07-24T23:59:00Z"),
+    );
+    expect(midnight.slipped[0].daysLate).toBe(14);
+    expect(evening.slipped[0].daysLate).toBe(14);
+  });
+
   it("falls back to a true, generic win when no metric improved and nothing shipped", () => {
     // A flat series (no metric can show improvement) with no shipped issues.
     const flatObservations = observations.map((o) => ({ ...o, value: 1 }));

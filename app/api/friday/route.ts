@@ -19,11 +19,9 @@ export async function GET() {
  */
 export async function POST() {
   try {
-    const [inputs, features, registry] = await Promise.all([
-      getFridayInputs(),
-      Promise.resolve(loadFeatureTaxonomy()),
-      Promise.resolve(loadMetricsRegistry()),
-    ]);
+    const inputs = await getFridayInputs();
+    const features = loadFeatureTaxonomy();
+    const registry = loadMetricsRegistry();
     const draft = buildFridayUpdate({ ...inputs, features, registry }, new Date());
     const update = FridayUpdateSchema.parse(draft);
     await saveFridayUpdate(update);

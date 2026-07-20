@@ -1,7 +1,8 @@
-import { buildHealthBoard, buildMetricCards, WORSE_DIRECTION, type MetricCard } from "@/lib/metrics";
+import { buildHealthBoard, buildMetricCards, type MetricCard } from "@/lib/metrics";
 import { trackOf } from "@/lib/work-board";
 import { HEALTH_STATE_LABELS, type MetricDefinition, type MetricObservation, type TaxonomyFeature } from "@/lib/schemas/metrics";
 import { computeAccuracy } from "@/lib/reviews";
+import { clip } from "@/lib/validation";
 import type { FridayFinding, FridayReview, WorkIssue } from "@/lib/db/queries";
 import type { FridayUpdate } from "@/lib/schemas/friday";
 
@@ -25,6 +26,15 @@ function plural(n: number, word: string): string {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
+/** Whole calendar days between two YYYY-MM-DD dates — independent of time-of-day,
+ *  so the same overdue ticket reports the same "days late" no matter what time
+ *  the update is generated on a given day. */
+function calendarDaysBetween(earlierIso: string, laterIso: string): number {
+  const earlier = new Date(`${earlierIso}T00:00:00Z`).getTime();
+  const later = new Date(`${laterIso}T00:00:00Z`).getTime();
+  return Math.round((later - earlier) / 86_400_000);
+}
+
 /** Pull the "**Customer pain:** ..." line embedded in a matrix-ticket description (lib/tickets.ts). */
 function extractCustomerPain(description: string | null): string | null {
   if (!description) return null;
@@ -32,24 +42,41 @@ function extractCustomerPain(description: string | null): string | null {
   return m ? m[1].trim() : null;
 }
 
-function clip(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
 /**
- * Relative improvement over the card's full series, signed so positive always
- * means "better" regardless of which raw direction that is for this metric.
- * WORSE_DIRECTION[id] names the direction that is BAD news for that metric —
- * e.g. "higher" for Churn Risk Watchlist, since more at-risk accounts is worse
- * — so a rising value there must score as a DECLINE, not an improvement.
+ * Which raw direction is genuinely GOOD news for this metric — used to score
+ * "one win" trend candidates. Deliberately its OWN map, not derived from
+ * lib/metrics.ts's WORSE_DIRECTION: that map's purpose is "which direction to
+ * sort tripped examples worst-first", and for metric 12 (Expansion PQLs) it's
+ * set to "higher" for that sorting reason even though a RISING value there is
+ * good news (more expansion signal), not bad — its own comment says as much
+ * ("a trip is a good signal, but 'more' is the notable direction"). Reusing
+ * WORSE_DIRECTION for trend-improvement scoring inverted that one metric's
+ * verdict; this map is defined per-metric so that can't happen again.
  */
+const GOOD_DIRECTION: Record<number, "lower" | "higher"> = {
+  1: "higher", // Feature Adoption Rate
+  2: "higher", // Engagement
+  3: "lower", // Usage Frequency (fewer days between uses = more frequent)
+  4: "higher", // Task Completion Rate
+  5: "lower", // Time on Task (faster is better)
+  6: "higher", // Activation Rate (D30)
+  7: "lower", // Time to Adoption (faster is better)
+  8: "lower", // Friction Index
+  9: "higher", // AI Containment Rate
+  10: "higher", // Feature NPS
+  11: "lower", // Churn Risk Watchlist (fewer at-risk accounts is better)
+  12: "higher", // Expansion PQLs (more expansion signal is genuinely good)
+  13: "lower", // Feature Revenue Concentration (lower concentration is better)
+};
+
+/** Relative improvement over the card's full series, signed so positive always means "better". */
 function trendImprovement(card: MetricCard): number | null {
   if (card.series.length < 2) return null;
   const first = card.series[0];
   const last = card.series[card.series.length - 1];
-  const worseDirection = WORSE_DIRECTION[card.metric.id] ?? "lower";
+  const goodDirection = GOOD_DIRECTION[card.metric.id] ?? "higher";
   const raw = last - first;
-  const improvement = worseDirection === "higher" ? -raw : raw;
+  const improvement = goodDirection === "higher" ? raw : -raw;
   const denom = Math.abs(first) > 1e-9 ? Math.abs(first) : 1;
   return improvement / denom;
 }
@@ -83,10 +110,7 @@ export function buildFridayUpdate(input: FridayUpdateInput, now: Date): FridayUp
       title: i.title,
       url: i.url,
       dueDate: i.dueDate!,
-      daysLate: Math.max(
-        1,
-        Math.round((now.getTime() - new Date(`${i.dueDate}T00:00:00Z`).getTime()) / 86_400_000),
-      ),
+      daysLate: Math.max(1, calendarDaysBetween(i.dueDate!, todayIso)),
     }))
     .sort((a, b) => b.daysLate - a.daysLate);
 
@@ -150,7 +174,9 @@ export function buildFridayUpdate(input: FridayUpdateInput, now: Date): FridayUp
   // --- AI usage ---
   const containmentCard = cards.find((c) => c.metric.id === 9);
   const accuracy = computeAccuracy(findings, reviews);
-  const agreeRatePercent = accuracy.agreeRate != null ? Math.round(accuracy.agreeRate * 1000) / 10 : null;
+  // Same whole-percent rounding as components/AccuracyStrip.tsx, so the same
+  // underlying agreeRate never displays two different percentages in the app.
+  const agreeRatePercent = accuracy.agreeRate != null ? Math.round(accuracy.agreeRate * 100) : null;
   const aiUsage = {
     containmentRatePercent: containmentCard?.currentValue ?? null,
     workflowsRunCount: runsCount,
@@ -188,21 +214,19 @@ export function buildFridayUpdate(input: FridayUpdateInput, now: Date): FridayUp
   if (risks.length === 0) risks.push("No material risks flagged this window.");
 
   // --- one win ---
-  let bestCard: MetricCard | null = null;
-  let bestScore = -Infinity;
-  for (const card of cards) {
-    const score = trendImprovement(card);
-    if (score != null && score > bestScore) {
-      bestScore = score;
-      bestCard = card;
-    }
-  }
+  const best = cards
+    .map((card) => ({ card, score: trendImprovement(card) }))
+    .filter((c): c is { card: MetricCard; score: number } => c.score != null)
+    .reduce<{ card: MetricCard; score: number } | null>(
+      (best, c) => (best === null || c.score > best.score ? c : best),
+      null,
+    );
 
   let oneWin: string;
-  if (bestCard && bestScore > 0) {
-    const first = bestCard.series[0];
-    const last = bestCard.series[bestCard.series.length - 1];
-    oneWin = clip(`${bestCard.metric.name} improved from ${first.toFixed(1)} to ${last.toFixed(1)} over the trailing 12 weeks.`, 500);
+  if (best && best.score > 0) {
+    const first = best.card.series[0];
+    const last = best.card.series[best.card.series.length - 1];
+    oneWin = clip(`${best.card.metric.name} improved from ${first.toFixed(1)} to ${last.toFixed(1)} over the trailing 12 weeks.`, 500);
   } else if (shipped.length > 0) {
     oneWin = clip(`Shipped "${shipped[0].title}" (${shipped[0].identifier}) this window.`, 500);
   } else {

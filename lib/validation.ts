@@ -17,3 +17,8 @@ export function formatTimestamp(value: Date | string | null | undefined): string
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 16).replace("T", " ");
 }
+
+/** Clip text to a max length with an ellipsis, never producing a string over `max` chars. */
+export function clip(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}

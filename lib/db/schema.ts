@@ -330,11 +330,12 @@ export const metricObservations = pgTable(
 
 /**
  * The generated Friday Product & Engineering Update (Phase 5), single-row
- * ("latest") singleton — same delete-then-insert "replace cleanly" idempotency
- * as `linearSyncState`/`metricObservations`. `body` is the full validated
- * FridayUpdate (schemas/friday.ts); regenerating overwrites it wholesale rather
- * than accumulating a history, matching the spec's "regenerating replaces
- * cleanly" acceptance criterion.
+ * ("latest") singleton — upserted atomically (same idiom as
+ * `linearSyncState`), never delete-then-insert, so two overlapping
+ * generations can't race each other into a missing row or a primary-key
+ * violation. `body` is the full validated FridayUpdate (schemas/friday.ts);
+ * regenerating overwrites it wholesale rather than accumulating a history,
+ * matching the spec's "regenerating replaces cleanly" acceptance criterion.
  */
 export const fridayUpdates = pgTable("friday_updates", {
   id: text("id").primaryKey().default("latest"),

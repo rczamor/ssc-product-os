@@ -376,25 +376,39 @@ export async function getFridayInputs(): Promise<FridayInputs> {
   };
 }
 
-/** The current Friday Update, or null before the first generation. */
+/**
+ * The current Friday Update, or null before the first generation. A stored row
+ * that no longer satisfies the current schema (e.g. a field's bounds tightened
+ * after it was written) degrades to null rather than throwing — the Work page
+ * should render "not generated yet", not crash outright over one stale row.
+ */
 export async function getLatestFridayUpdate(): Promise<FridayUpdate | null> {
   const db = await getDb();
   const [row] = await db.select().from(fridayUpdates).where(eq(fridayUpdates.id, "latest"));
   if (!row) return null;
-  return FridayUpdateSchema.parse(row.body);
+  const parsed = FridayUpdateSchema.safeParse(row.body);
+  if (!parsed.success) {
+    console.error("stored friday update failed schema validation:", parsed.error);
+    return null;
+  }
+  return parsed.data;
 }
 
 /**
- * Store a freshly generated Friday Update, replacing any prior one wholesale
- * (delete-then-insert — same idempotency idiom as `syncProjectToCache` and
- * `seed-metrics.ts`'s reseed) so "regenerate" never accumulates stale rows.
+ * Store a freshly generated Friday Update, replacing any prior one wholesale —
+ * an atomic upsert (not delete-then-insert) against the single fixed-id row, so
+ * two overlapping generations (a double-click, a retried request) can't race:
+ * a delete-then-insert leaves a window where one caller's DELETE can run
+ * between the other's DELETE and INSERT, throwing a primary-key violation on
+ * the losing INSERT or transiently leaving no row for a concurrent GET to read.
  */
 export async function saveFridayUpdate(update: FridayUpdate): Promise<void> {
   const db = await getDb();
-  await db.delete(fridayUpdates);
-  await db.insert(fridayUpdates).values({
-    id: "latest",
-    body: update,
-    generatedAt: new Date(update.generatedAt),
-  });
+  await db
+    .insert(fridayUpdates)
+    .values({ id: "latest", body: update, generatedAt: new Date(update.generatedAt) })
+    .onConflictDoUpdate({
+      target: fridayUpdates.id,
+      set: { body: update, generatedAt: new Date(update.generatedAt) },
+    });
 }

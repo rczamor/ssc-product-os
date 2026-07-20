@@ -33,7 +33,10 @@ export default async function WorkPage() {
         issueCount={board.issueCount}
       />
 
-      <FridayUpdate update={fridayUpdate} />
+      <FridayUpdate
+        update={fridayUpdate}
+        boardLastSyncedAt={board.lastSyncedAt ? board.lastSyncedAt.toISOString() : null}
+      />
     </div>
   );
 }

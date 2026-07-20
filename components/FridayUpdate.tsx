@@ -46,7 +46,13 @@ function IssueList({
   );
 }
 
-export default function FridayUpdate({ update: initial }: { update: FridayUpdateData | null }) {
+export default function FridayUpdate({
+  update: initial,
+  boardLastSyncedAt,
+}: {
+  update: FridayUpdateData | null;
+  boardLastSyncedAt: string | null;
+}) {
   const router = useRouter();
   const [update, setUpdate] = useState(initial);
   const [generating, setGenerating] = useState(false);
@@ -106,6 +112,10 @@ export default function FridayUpdate({ update: initial }: { update: FridayUpdate
               empty="Nothing moved to Done this window."
               dateLabel="done"
             />
+            <p className="mt-1 text-[11px] text-slate-400">
+              Reflects the board as of last sync
+              {boardLastSyncedAt ? ` (${formatTimestamp(boardLastSyncedAt)})` : " — never synced"}.
+            </p>
           </Section>
           <Section title="Slipped">
             <IssueList

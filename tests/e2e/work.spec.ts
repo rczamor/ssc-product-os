@@ -5,7 +5,7 @@ test("work screen renders the track/view toggles and the timeline lanes", async 
   await login(page);
   await page.goto("/work");
 
-  await expect(page.getByRole("heading", { name: "Work" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Work", exact: true })).toBeVisible();
 
   // Track toggle is ProductOS / SSC Platform; view toggle is Timeline / Kanban.
   await expect(page.getByRole("button", { name: "ProductOS" })).toBeVisible();
@@ -23,12 +23,27 @@ test("work screen renders the track/view toggles and the timeline lanes", async 
   await page.getByRole("button", { name: "SSC Platform" }).click();
   await page.getByRole("button", { name: "Timeline" }).click();
   await page.getByRole("button", { name: "ProductOS" }).click();
-  await expect(page.getByRole("heading", { name: "Work" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Work", exact: true })).toBeVisible();
+
+  // The Shipped lane is pinned to the bottom of the timeline (its label + the
+  // "This quarter" lane above it both render even on an empty board).
+  await expect(page.getByText("Shipped", { exact: true }).first()).toBeVisible();
+
+  // The "How We Work" operating-system section renders below the board.
+  await expect(page.getByRole("heading", { name: "How We Work" })).toBeVisible();
+  await expect(page.getByText("Change Control Board").first()).toBeVisible();
+
+  // The Sync control degrades gracefully with no LINEAR_API_KEY (e2e env).
+  await page.getByRole("button", { name: "Sync" }).click();
+  await expect(page.getByText("Linear key not set")).toBeVisible();
 });
 
 test("nav links to Work from Planning", async ({ page }) => {
   await login(page);
-  await page.getByRole("link", { name: "Work" }).click();
+  // Exact match: once the matrix is approved (a prior test in the shared-DB
+  // suite), the Plan page also renders a "View on Work board →" link, so a
+  // substring match on "Work" would be ambiguous. The nav link is exactly "Work".
+  await page.getByRole("link", { name: "Work", exact: true }).click();
   await expect(page).toHaveURL(/\/work$/);
 });
 

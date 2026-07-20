@@ -54,6 +54,14 @@ export interface FindingRow {
  * footer). Filtering is client-side and mirrored to `?persona=` so the persona
  * detail page's "Filter matrix to this persona →" deep link lands here.
  */
+/** Origin filter values — who authored the finding. */
+type OriginFilter = "all" | "agent" | "human";
+const ORIGIN_FILTERS: Array<{ key: OriginFilter; label: string; color: string }> = [
+  { key: "all", label: "All", color: "#262019" },
+  { key: "agent", label: "Agent", color: "#2b5bd7" },
+  { key: "human", label: "Human", color: "#6d4bd0" },
+];
+
 export default function PlanBoard({
   runId,
   personaChips,
@@ -76,6 +84,7 @@ export default function PlanBoard({
   initialPersona: PersonaSlug | null;
 }) {
   const [active, setActive] = useState<PersonaSlug | null>(initialPersona);
+  const [origin, setOrigin] = useState<OriginFilter>("all");
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
 
   function setFilter(next: PersonaSlug | null) {
@@ -85,7 +94,20 @@ export default function PlanBoard({
     }
   }
 
-  const shown = active ? findings.filter((f) => f.persona === active) : findings;
+  // Origin counts (agent vs human) drive the source-filter chip labels.
+  const agentCount = findings.filter((f) => f.origin !== "human").length;
+  const humanCount = findings.filter((f) => f.origin === "human").length;
+  const originCount: Record<OriginFilter, number> = {
+    all: findings.length,
+    agent: agentCount,
+    human: humanCount,
+  };
+
+  const shown = findings.filter(
+    (f) =>
+      (active ? f.persona === active : true) &&
+      (origin === "all" ? true : origin === "human" ? f.origin === "human" : f.origin !== "human"),
+  );
   const likes = shown.filter((f) => f.kind === "like");
   const dislikes = shown.filter((f) => f.kind === "dislike");
   const activeChip = personaChips.find((c) => c.slug === active);
@@ -254,6 +276,41 @@ export default function PlanBoard({
             → <span className="font-semibold text-ink-3">{activeChip.label}</span>
           </span>
         )}
+      </div>
+
+      {/* SOURCE filter row — agent-generated vs human-authored findings */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-ink-6">
+          Source
+        </span>
+        <div className="inline-flex rounded-lg border border-line bg-card p-[3px]">
+          {ORIGIN_FILTERS.map((o) => {
+            const on = origin === o.key;
+            return (
+              <button
+                key={o.key}
+                type="button"
+                onClick={() => setOrigin(o.key)}
+                className="flex cursor-pointer items-center gap-[7px] rounded-[6px] px-[11px] py-[5px] text-[12px] font-semibold"
+                style={{
+                  background: on ? "var(--accent-bg)" : "transparent",
+                  color: on ? "var(--accent)" : "#6b6152",
+                }}
+              >
+                {o.key !== "all" && (
+                  <span className="h-2 w-2 rounded-sm" style={{ background: o.color }} />
+                )}
+                {o.label}
+                <span className="font-mono text-[10.5px] font-medium text-ink-6">
+                  {originCount[o.key]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <span className="whitespace-nowrap text-[11px] text-ink-5">
+          agent = persona subagents · human = reviewer-authored
+        </span>
       </div>
 
       {/* THEMES matrix hero */}

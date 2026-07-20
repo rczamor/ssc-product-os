@@ -43,9 +43,12 @@ export function verdictOf(issue: WorkIssue): KfdVerdict | null {
   return null;
 }
 
-/** Relative-time timeline buckets (A15) — the mockup's Now→This quarter lanes. */
+/**
+ * Relative-time timeline buckets (A15) — the mockup's Now→This quarter lanes,
+ * with the completed "Shipped" lane pinned to the BOTTOM so already-delivered
+ * work sits below the forward-looking pipeline rather than above it.
+ */
 export const TIMELINE_BUCKETS = [
-  { key: "shipped", label: "Shipped", sublabel: "os-build · pre day-0" },
   { key: "today", label: "Today" },
   { key: "next-3-days", label: "Next 3 days" },
   { key: "this-week", label: "This week" },
@@ -53,6 +56,7 @@ export const TIMELINE_BUCKETS = [
   { key: "this-month", label: "This month" },
   { key: "next-month", label: "Next month" },
   { key: "this-quarter", label: "This quarter" },
+  { key: "shipped", label: "Shipped", sublabel: "os-build · pre day-0" },
 ] as const;
 export type TimelineBucketKey = (typeof TIMELINE_BUCKETS)[number]["key"];
 

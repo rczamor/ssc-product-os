@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTimeline, phaseOf, trackOf } from "@/lib/work-board";
+import { buildTimeline, buildTimelineBuckets, phaseOf, trackOf } from "@/lib/work-board";
 import type { WorkIssue } from "@/lib/db/queries";
 
 const PHASES = [{ label: "phase:week-1" }, { label: "phase:week-2" }];
@@ -82,5 +82,28 @@ describe("buildTimeline", () => {
     const child = issue({ id: "c", parentId: "e", labels: [] });
     const timeline = buildTimeline([epic, child], "all", PHASES);
     expect(timeline.unscheduled.map((i) => i.id)).toEqual(["e"]);
+  });
+});
+
+describe("buildTimelineBuckets", () => {
+  const now = new Date("2026-07-20T12:00:00Z");
+
+  it("pins the Shipped lane to the BOTTOM and routes completed issues into it", () => {
+    const done = issue({
+      id: "done",
+      stateType: "completed",
+      completedAt: "2026-07-10T00:00:00.000Z",
+    });
+    const today = issue({ id: "today", dueDate: "2026-07-20" });
+
+    const buckets = buildTimelineBuckets([done, today], "all", now);
+
+    // Shipped is the last lane (below the forward-looking pipeline), and Today
+    // is the first — the reorder that moved completed work to the bottom.
+    expect(buckets[buckets.length - 1].key).toBe("shipped");
+    expect(buckets[0].key).toBe("today");
+
+    expect(buckets.find((b) => b.key === "shipped")!.issues.map((i) => i.id)).toEqual(["done"]);
+    expect(buckets.find((b) => b.key === "today")!.issues.map((i) => i.id)).toEqual(["today"]);
   });
 });

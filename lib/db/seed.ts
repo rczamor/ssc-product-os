@@ -3,15 +3,13 @@ import {
   deliverables,
   feedbackItems,
   findings,
-  metricObservations,
   personaEvaluations,
   runRequests,
   runs,
   screenshots,
 } from "./schema";
 import { feedbackDedupeKey, guessPersona } from "@/lib/schemas/feedback";
-import { loadFeatureTaxonomy, loadMetricsRegistry } from "@/lib/metrics";
-import { generateMetricObservations } from "@/lib/metric-generator";
+import { ensureMetricsSeeded } from "./ensure-metrics";
 
 /** 1x1 white JPEG — placeholder screenshot bytes for seeded demo data. */
 const TINY_JPEG_BASE64 =
@@ -440,12 +438,9 @@ async function seedFeedback(db: Db): Promise<void> {
 }
 
 /** Seeds the Metrics tab's demo dataset (Phase 4) so it renders before anyone
- *  runs runner/seed-metrics.ts manually. Guarded independently — metric
- *  observations are a separate table from the run/feedback seeds above. */
+ *  runs runner/seed-metrics.ts manually. Delegates to the shared, idempotent
+ *  helper that the read path also calls — the metrics sample is synthetic by
+ *  design and must materialize regardless of the DB_SEED_ON_EMPTY demo gate. */
 async function seedMetrics(db: Db): Promise<void> {
-  const existing = await db.select({ id: metricObservations.id }).from(metricObservations).limit(1);
-  if (existing.length > 0) return;
-  const features = loadFeatureTaxonomy();
-  const registry = loadMetricsRegistry();
-  await db.insert(metricObservations).values(generateMetricObservations(features, registry));
+  await ensureMetricsSeeded(db);
 }

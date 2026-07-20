@@ -125,6 +125,34 @@ export default function WorkBoard({
   const [view, setView] = useState<View>("timeline");
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
   const [fridayOpen, setFridayOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  // Pull the latest issues from the SSC-ProductOS Linear project into the cache,
+  // then re-read the board. 503 (no LINEAR_API_KEY) degrades to a message rather
+  // than an error — the board just keeps showing whatever was last cached.
+  async function syncBoard() {
+    if (syncing) return;
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch("/api/linear/sync", { method: "POST" });
+      if (res.status === 503) {
+        setSyncMsg("Linear key not set");
+      } else if (!res.ok) {
+        setSyncMsg("sync failed");
+      } else {
+        // Refresh the board from the freshly-synced cache. Don't set a sticky
+        // message — router.refresh() updates lastSyncedAt so the live "synced
+        // just now" label takes over rather than freezing on a fixed count.
+        router.refresh();
+      }
+    } catch {
+      setSyncMsg("sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const now = useMemo(() => new Date(nowIso), [nowIso]);
 
@@ -155,7 +183,7 @@ export default function WorkBoard({
   );
 
   return (
-    <div className="mx-auto max-w-[1300px] px-6 pt-[26px] pb-[80px] animate-fadeup">
+    <div className="mx-auto max-w-[1300px] px-6 pt-[26px] pb-[28px] animate-fadeup">
       {/* Header */}
       <div className="mb-[18px] flex flex-wrap items-end justify-between gap-5">
         <div>
@@ -169,8 +197,17 @@ export default function WorkBoard({
         <div className="flex items-center gap-[10px]">
           <div className="flex items-center gap-[7px] font-mono text-[11px] text-ink-5">
             <span className="h-[6px] w-[6px] rounded-full bg-green" />
-            <span suppressHydrationWarning>{relSynced(lastSyncedAt)}</span>
+            <span suppressHydrationWarning>{syncMsg ?? relSynced(lastSyncedAt)}</span>
           </div>
+          <button
+            onClick={syncBoard}
+            disabled={syncing}
+            title="Pull the latest issues from the SSC-ProductOS Linear project"
+            className="flex cursor-pointer items-center gap-[6px] rounded-[8px] border border-line-3 bg-card px-[12px] py-2 text-[12.5px] font-semibold text-ink-2 hover:border-ink-7 disabled:cursor-default disabled:opacity-60"
+          >
+            <span className={syncing ? "inline-block animate-spin" : "inline-block"}>⟳</span>
+            {syncing ? "Syncing…" : "Sync"}
+          </button>
           <button
             onClick={() => setFridayOpen(true)}
             className="flex cursor-pointer items-center gap-[7px] rounded-[8px] border border-line-3 bg-card px-[13px] py-2 text-[12.5px] font-semibold text-ink-2 hover:border-ink-7"
@@ -225,7 +262,9 @@ export default function WorkBoard({
             return (
               <div
                 key={b.key}
-                className="grid grid-cols-[150px_1fr] border-b border-line-2 px-[18px] py-[13px] last:border-b-0"
+                className={`grid grid-cols-[150px_1fr] border-b border-line-2 px-[18px] py-[13px] last:border-b-0 ${
+                  isShipped ? "mt-[6px] border-t border-line bg-card-subtle" : ""
+                }`}
               >
                 <div className="pr-[14px]">
                   {isShipped ? (

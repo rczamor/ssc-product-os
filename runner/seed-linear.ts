@@ -192,6 +192,100 @@ const ROLE_PLAN: SeedTicket[] = [
   },
 ];
 
+/**
+ * The 5 reusable Claude/AI workflows to stand up in the first 90 days
+ * (take-home Prompt 4). Live in Linear as TRZ-1913..1917; kept here so a fresh
+ * workspace reseed recreates them (idempotent by title). track:internal +
+ * origin:role-plan so they render on the ProductOS timeline/kanban.
+ */
+const AI_WORKFLOWS: SeedTicket[] = [
+  {
+    key: "aiwf-transcript-themes",
+    title: "AI workflow 1/5: Transcript → roadmap themes",
+    description:
+      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "transcript-to-roadmap themes"). Human-in-the-loop by design: the model drafts, a named PM approves before anything reaches the roadmap.\n\n' +
+      "**Inputs**\n- Gong/Zoom call transcripts (discovery, CS, renewal) from the Snowflake customer-insights layer.\n- The persona / maturity framework for persona-matching.\n- Current roadmap + open Jira (PRODF) epics, to avoid re-proposing known work.\n\n" +
+      "**Steps**\n1. Pull the week's transcripts; strip PII.\n2. Extract pains, requests, and verbatims; tag with account, ARR band, persona.\n3. Cluster into themes; dedupe against last week + existing roadmap items.\n4. Rank by frequency × ARR weight × strategic fit; attach 2–3 verbatims each.\n5. Draft candidate roadmap cards (problem, evidence, personas).\n\n" +
+      "**Outputs**\n- A weekly Voice-of-Customer themes brief with linked verbatims.\n- Candidate roadmap cards drafted as proposals (never auto-committed).\n\n" +
+      "**Human review**\n- The owning PM validates each theme against the calls and accepts / merges / rejects before it becomes a candidate.\n\n" +
+      "**Automation plan**\n- Scheduled Friday run; posts to Slack #product and drafts proposal cards; a human promotes to the roadmap.\n\n" +
+      "**Success metric**\n- % of roadmap items traceable to a customer verbatim (≥80%); theme → spec cycle time.",
+    labels: ["track:internal", "origin:role-plan", "phase:week-2"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 12,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-feedback-matching",
+    title: "AI workflow 2/5: Feedback → Jira/matrix matching",
+    description:
+      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "feedback-to-Jira matching"). This app already models the pattern end-to-end (matrix → drafted tickets → human approval → Linear push); this generalizes it to the live Pendo/support stream.\n\n' +
+      "**Inputs**\n- Pendo Listen feedback, support tickets, the persona-review matrix findings.\n- The existing Jira (PRODF) issue corpus + labels.\n\n" +
+      "**Steps**\n1. Normalize + dedupe incoming feedback (content hash).\n2. Embed + match against existing Jira issues; classify duplicate-of / relates-to / net-new.\n3. Attach verbatim + running count + persona to the matched issue.\n4. For net-new, draft a ticket (problem, evidence, proposed priority) as a proposal.\n\n" +
+      "**Outputs**\n- Every feedback item linked to a tracked issue or a drafted new one, with evidence + confidence.\n\n" +
+      "**Human review**\n- A PM confirms the match or creates the ticket — the same hard approval gate this app enforces for the matrix push.\n\n" +
+      "**Automation plan**\n- Runs on each feedback batch; writes proposals only; approved proposals push idempotently.\n\n" +
+      "**Success metric**\n- Feedback triage time (<1 business day); % linked within a week; match precision vs human accept-rate.",
+    labels: ["track:internal", "origin:role-plan", "phase:week-2"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 12,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-release-notes",
+    title: "AI workflow 3/5: Release notes from Jira + GitHub",
+    description:
+      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "release notes from Jira/GitHub"). Closes the loop between shipping and telling customers, with ROI framing.\n\n' +
+      "**Inputs**\n- Jira (PRODF) issues moved to Done in the window.\n- Merged GitHub PRs (titles, linked issues, labels).\n- Adoption metrics per feature (Pendo/Heap) for framing.\n\n" +
+      "**Steps**\n1. Collect completed work; join Jira issues to their PRs.\n2. Group by feature / persona; drop internal-only churn.\n3. Draft a customer-facing note (benefit + ROI) and an internal changelog (what/why/risk).\n4. Link each note to the adoption metric it should move.\n\n" +
+      "**Outputs**\n- Customer-facing release notes + internal changelog, posted to Slack / Confluence.\n\n" +
+      "**Human review**\n- PM/PMM edits tone and customer framing before publish.\n\n" +
+      "**Automation plan**\n- Runs weekly and on Thursday release-train sign-off; drafts both for one-click publish.\n\n" +
+      "**Success metric**\n- Release-note lead time (sign-off → published, same day); adoption lift on noted features.",
+    labels: ["track:internal", "origin:role-plan", "phase:week-3"],
+    priority: 3,
+    state: "Todo",
+    dueDayOffset: 19,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-low-adoption",
+    title: "AI workflow 4/5: Low-adoption / high-effort feature detection",
+    description:
+      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "low-adoption/high-effort feature detection"). The Measure tab already trips these triggers; this packages detection + routing into a repeatable CCB input.\n\n' +
+      "**Inputs**\n- Pendo/Heap adoption + the metrics registry (Feature Adoption, Activation D7/D30/D90, Friction Index).\n- Engineering effort signals (Span/DORA, story points, maintenance load).\n- The feature taxonomy (rhythm class + value role).\n\n" +
+      "**Steps**\n1. Compute adoption vs. effort per feature against each feature's rhythm-class baseline.\n2. Flag shipped-not-adopted (<25% D30), legacy (<2%, no tier-1 dependency), high-effort/low-adoption.\n3. Draft a CCB decision packet per flagged feature with a recommended Kill / Fix / Double-Down + evidence.\n\n" +
+      "**Outputs**\n- The Measure tab's Action Queue + a per-feature CCB decision packet.\n\n" +
+      "**Human review**\n- The CCB makes the kill/invest call; the PM commits the first action. The workflow never kills on its own.\n\n" +
+      "**Automation plan**\n- Runs weekly; auto-drafts the CCB decision issue and routes it to the Thursday agenda.\n\n" +
+      "**Success metric**\n- Count of forced kill/invest decisions per quarter; engineering effort reclaimed.",
+    labels: ["track:internal", "origin:role-plan", "phase:week-3"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 19,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-ccb-recap",
+    title: "AI workflow 5/5: Weekly CCB recap",
+    description:
+      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "weekly CCB recap"). Turns the Change Control Board into a written, traceable record the same day it meets.\n\n' +
+      "**Inputs**\n- CCB meeting notes / decision log.\n- Jira (PRODF) scope changes and release sign-offs from the session.\n- The week's R/Y/G roll-up.\n\n" +
+      "**Steps**\n1. Summarize decisions: approved, deferred, killed — with rationale.\n2. Link every decision to affected tickets, owners, due dates.\n3. Draft the recap and the ticket-state updates the decisions imply.\n\n" +
+      "**Outputs**\n- A CCB recap posted to Slack / Confluence + a proposed set of ticket updates.\n\n" +
+      "**Human review**\n- Product Ops verifies decisions and owners before the recap posts and before any ticket changes.\n\n" +
+      "**Automation plan**\n- Runs right after the Thursday CCB; posts the recap and stages ticket updates for one-click confirmation.\n\n" +
+      "**Success metric**\n- Recap same-day rate (100%); decision → action latency (owner + first action within 24h).",
+    labels: ["track:internal", "origin:role-plan", "phase:day-30"],
+    priority: 3,
+    state: "Todo",
+    dueDayOffset: 30,
+    subIssues: [],
+  },
+];
+
 /** day0 + offset days, nudged forward off weekends → ISO date (YYYY-MM-DD). */
 function dueDate(day0: string, offset: number): string {
   const d = new Date(`${day0}T00:00:00Z`);
@@ -203,7 +297,10 @@ function dueDate(day0: string, offset: number): string {
 }
 
 async function main(): Promise<void> {
-  const file = SeedTicketsFileSchema.parse({ osBuild: OS_BUILD, rolePlan: ROLE_PLAN });
+  const file = SeedTicketsFileSchema.parse({
+    osBuild: OS_BUILD,
+    rolePlan: [...ROLE_PLAN, ...AI_WORKFLOWS],
+  });
   const cfg = getLinearConfig();
   const all = [...file.osBuild, ...file.rolePlan];
 

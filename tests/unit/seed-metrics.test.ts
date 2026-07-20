@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/db";
+import { getMetricObservations } from "@/lib/db/queries";
 import { metricObservations } from "@/lib/db/schema";
 import { loadFeatureTaxonomy, loadMetricsRegistry } from "@/lib/metrics";
 import { generateMetricObservations } from "@/lib/metric-generator";
@@ -28,5 +29,22 @@ describe("metric_observations reseed idempotency", () => {
     await reseed(observations);
     const second = await db.select().from(metricObservations);
     expect(second.length).toBe(observations.length); // not doubled
+  });
+});
+
+describe("getMetricObservations auto-seeds an empty table", () => {
+  it("materializes the generated sample on read so the Measure page is never blank", async () => {
+    // Simulate a deployed DB populated only by a real run (no observations),
+    // then verify the read path repopulates it rather than returning nothing.
+    const db = await getDb();
+    await db.delete(metricObservations);
+    expect((await db.select().from(metricObservations)).length).toBe(0);
+
+    const rows = await getMetricObservations();
+    expect(rows.length).toBeGreaterThan(0);
+
+    // A second read is a no-op (idempotent) and returns the same count.
+    const again = await getMetricObservations();
+    expect(again.length).toBe(rows.length);
   });
 });

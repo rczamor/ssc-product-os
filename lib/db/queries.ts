@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
+import { ensureMetricsSeeded } from "./ensure-metrics";
 import {
   approvals,
   deliverables,
@@ -243,6 +244,10 @@ export async function isRunApproved(runId: string): Promise<boolean> {
 /** All generated metric observations for the Metrics tab (Phase 4). */
 export async function getMetricObservations(): Promise<MetricObservation[]> {
   const db = await getDb();
+  // The Metrics tab dataset is a synthetic sample by design, so seed it on first
+  // read rather than behind the demo-seed flag — otherwise a deployed DB
+  // populated only by a real run (which writes no observations) shows blank cards.
+  await ensureMetricsSeeded(db);
   const rows = await db
     .select({
       metricId: metricObservations.metricId,

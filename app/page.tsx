@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {!isPersistentDb() && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-lg border border-amber/30 bg-amber/10 px-4 py-3 text-sm text-amber-dark">
           Running on ephemeral demo storage — set <code>DATABASE_URL</code> (Neon) in the
           environment to persist runs.
         </div>
@@ -48,14 +48,14 @@ export default async function DashboardPage() {
 
       <IngestionPanel summary={ingestion} themes={themes} personas={personaBases} />
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold">Run queue</h2>
+      <section className="rounded-[11px] border border-line bg-card shadow-card">
+        <div className="border-b border-line-2 px-5 py-4">
+          <h2 className="text-sm font-semibold text-ink">Run queue</h2>
         </div>
         {requests.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-slate-500">No run requests yet.</p>
+          <p className="px-5 py-4 text-sm text-ink-4">No run requests yet.</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line-2">
             {requests.map((r) => (
               <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-sm">
                 <StatusBadge status={r.status} />
@@ -64,12 +64,12 @@ export default async function DashboardPage() {
                     <PersonaBadge key={p} persona={p} />
                   ))}
                 </span>
-                <span className="text-slate-500">{r.note}</span>
-                <span className="ml-auto text-xs text-slate-400">
+                <span className="text-ink-4">{r.note}</span>
+                <span className="ml-auto font-mono text-xs text-ink-5">
                   {formatTimestamp(r.createdAt)} · {r.requestedBy}
                 </span>
                 {r.runId && (
-                  <Link href={`/runs/${r.runId}`} className="text-xs text-indigo-600 hover:underline">
+                  <Link href={`/runs/${r.runId}`} className="text-xs text-accent hover:underline">
                     run →
                   </Link>
                 )}
@@ -82,37 +82,37 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h2 className="text-sm font-semibold">Evaluation runs</h2>
+      <section className="rounded-[11px] border border-line bg-card shadow-card">
+        <div className="border-b border-line-2 px-5 py-4">
+          <h2 className="text-sm font-semibold text-ink">Evaluation runs</h2>
         </div>
         {enriched.length === 0 ? (
-          <p className="px-5 py-4 text-sm text-slate-500">
+          <p className="px-5 py-4 text-sm text-ink-4">
             No runs yet — queue one above or run <code>/platform-review</code> in a Claude Code
             session.
           </p>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="text-xs uppercase tracking-wide text-slate-400">
-              <tr className="border-b border-slate-100">
-                <th className="px-5 py-2 font-medium">Started</th>
-                <th className="px-2 py-2 font-medium">Status</th>
-                <th className="px-2 py-2 font-medium">Trigger</th>
-                <th className="px-2 py-2 font-medium">Personas</th>
-                <th className="px-2 py-2 font-medium">Likes</th>
-                <th className="px-2 py-2 font-medium">Dislikes</th>
-                <th className="px-2 py-2 font-medium">Deliverable</th>
+            <thead className="text-[10px] uppercase tracking-[0.08em] text-ink-5">
+              <tr className="border-b border-line-2">
+                <th className="px-5 py-2 font-semibold">Started</th>
+                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 font-semibold">Trigger</th>
+                <th className="px-2 py-2 font-semibold">Personas</th>
+                <th className="px-2 py-2 font-semibold">Likes</th>
+                <th className="px-2 py-2 font-semibold">Dislikes</th>
+                <th className="px-2 py-2 font-semibold">Deliverable</th>
                 <th className="px-2 py-2" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-line-2">
               {enriched.map((run) => (
-                <tr key={run.id} className="hover:bg-slate-50">
-                  <td className="px-5 py-3 text-slate-600">{formatTimestamp(run.startedAt)}</td>
+                <tr key={run.id} className="hover:bg-card-alt">
+                  <td className="px-5 py-3 font-mono text-ink-3">{formatTimestamp(run.startedAt)}</td>
                   <td className="px-2 py-3">
                     <StatusBadge status={run.status} />
                   </td>
-                  <td className="px-2 py-3 text-slate-500">{run.trigger}</td>
+                  <td className="px-2 py-3 text-ink-4">{run.trigger}</td>
                   <td className="px-2 py-3">
                     <span className="flex gap-1">
                       {(run.personas as string[]).map((p) => (
@@ -120,13 +120,13 @@ export default async function DashboardPage() {
                       ))}
                     </span>
                   </td>
-                  <td className="px-2 py-3 text-emerald-700">{run.likeCount}</td>
-                  <td className="px-2 py-3 text-red-700">{run.dislikeCount}</td>
+                  <td className="px-2 py-3 font-mono text-green-dark">{run.likeCount}</td>
+                  <td className="px-2 py-3 font-mono text-red">{run.dislikeCount}</td>
                   <td className="px-2 py-3">{run.hasDeliverable ? "✓" : "—"}</td>
                   <td className="px-2 py-3">
                     <Link
                       href={`/runs/${run.id}`}
-                      className="text-xs font-medium text-indigo-600 hover:underline"
+                      className="text-xs font-medium text-accent hover:underline"
                     >
                       view →
                     </Link>

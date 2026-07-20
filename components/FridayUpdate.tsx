@@ -8,8 +8,8 @@ import type { FridayUpdate as FridayUpdateData } from "@/lib/schemas/friday";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h4>
-      <div className="mt-1 text-sm text-slate-700">{children}</div>
+      <h4 className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-5">{title}</h4>
+      <div className="mt-1 text-sm text-ink-2">{children}</div>
     </div>
   );
 }
@@ -23,20 +23,20 @@ function IssueList({
   empty: string;
   dateLabel: string;
 }) {
-  if (items.length === 0) return <p className="text-slate-400">{empty}</p>;
+  if (items.length === 0) return <p className="text-ink-5">{empty}</p>;
   return (
     <ul className="space-y-1">
       {items.map((i) => (
         <li key={i.identifier} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           {i.url ? (
-            <a href={i.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+            <a href={i.url} target="_blank" rel="noopener noreferrer" className="font-mono text-accent hover:underline">
               {i.identifier}
             </a>
           ) : (
-            <span className="text-slate-400">{i.identifier}</span>
+            <span className="font-mono text-ink-5">{i.identifier}</span>
           )}
           <span>{i.title}</span>
-          <span className="text-xs text-slate-400">
+          <span className="font-mono text-xs text-ink-5">
             {dateLabel} {i.date}
             {i.extra ? ` · ${i.extra}` : ""}
           </span>
@@ -79,11 +79,11 @@ export default function FridayUpdate({
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="rounded-[11px] border border-line bg-card p-4 shadow-card">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Friday Product &amp; Engineering Update</h2>
-          <p className="text-xs text-slate-400">
+          <h2 className="text-sm font-semibold text-ink">Friday Product &amp; Engineering Update</h2>
+          <p className="font-mono text-xs text-ink-5">
             {update
               ? `Generated ${formatTimestamp(update.generatedAt)} · window ${update.windowStart} → ${update.windowEnd}`
               : "Not generated yet."}
@@ -92,15 +92,15 @@ export default function FridayUpdate({
         <button
           onClick={generate}
           disabled={generating}
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-line-3 bg-card px-3 py-1.5 text-sm font-semibold text-ink-2 hover:border-ink-6 disabled:opacity-50"
         >
-          {generating ? "Generating…" : update ? "Regenerate update" : "Generate update"}
+          📄 {generating ? "Generating…" : update ? "Regenerate update" : "Generate update"}
         </button>
       </div>
-      {error && <p className="mb-3 text-xs text-red-600">{error}</p>}
+      {error && <p className="mb-3 text-xs text-red">{error}</p>}
 
       {!update ? (
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-ink-5">
           Click <b>Generate update</b> to build a Friday Update from the live board, this week&apos;s metric
           deltas, and the current run&apos;s findings.
         </p>
@@ -112,7 +112,7 @@ export default function FridayUpdate({
               empty="Nothing moved to Done this window."
               dateLabel="done"
             />
-            <p className="mt-1 text-[11px] text-slate-400">
+            <p className="mt-1 text-[11px] text-ink-5">
               Reflects the board as of last sync
               {boardLastSyncedAt ? ` (${formatTimestamp(boardLastSyncedAt)})` : " — never synced"}.
             </p>
@@ -129,12 +129,12 @@ export default function FridayUpdate({
           <Section title="Velocity">{update.velocity}</Section>
           <Section title="AI usage">
             {update.aiUsage.narrative}
-            <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
-              <span className="rounded bg-slate-100 px-1.5 py-0.5">
+            <div className="mt-1 flex flex-wrap gap-1.5 font-mono text-xs">
+              <span className="rounded-md border border-line bg-card-alt px-1.5 py-0.5">
                 containment {update.aiUsage.containmentRatePercent != null ? `${update.aiUsage.containmentRatePercent.toFixed(0)}%` : "—"}
               </span>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5">{update.aiUsage.workflowsRunCount} workflows run</span>
-              <span className="rounded bg-slate-100 px-1.5 py-0.5">
+              <span className="rounded-md border border-line bg-card-alt px-1.5 py-0.5">{update.aiUsage.workflowsRunCount} workflows run</span>
+              <span className="rounded-md border border-line bg-card-alt px-1.5 py-0.5">
                 agree-rate {update.aiUsage.agreeRatePercent != null ? `${update.aiUsage.agreeRatePercent.toFixed(0)}%` : "—"}
               </span>
             </div>

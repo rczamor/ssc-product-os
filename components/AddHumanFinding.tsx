@@ -79,14 +79,14 @@ export default function AddHumanFinding({
     }
   }
 
-  const input = "w-full rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-slate-500 focus:outline-none";
+  const input = "w-full rounded-md border border-line-3 bg-card px-2 py-1 text-sm text-ink-2 focus:border-accent focus:outline-none";
 
   if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:border-slate-400 hover:text-slate-800"
+        className="rounded-lg border border-dashed border-line-3 px-3 py-1.5 text-sm text-ink-3 hover:border-ink-5 hover:text-ink"
       >
         + Add a human finding
       </button>
@@ -94,23 +94,23 @@ export default function AddHumanFinding({
   }
 
   return (
-    <div className="rounded-lg border border-slate-300 bg-slate-50 p-4">
+    <div className="rounded-lg border border-line-3 bg-card-alt p-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-semibold">Add a human finding</h4>
-        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+        <h4 className="text-sm font-semibold text-ink">Add a human finding</h4>
+        <span className="rounded-md border border-line-3 bg-card px-2 py-0.5 text-[11px] font-medium text-ink-3">
           origin: human
         </span>
       </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {fixedPersona ? (
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-ink-4">
             Persona
-            <div className="mt-[2px] rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-sm text-slate-700">
+            <div className="mt-[2px] rounded-md border border-line bg-card px-2 py-1 text-sm text-ink-2">
               {PERSONA_LABELS[fixedPersona]}
             </div>
           </div>
         ) : (
-          <label className="text-xs text-slate-500">
+          <label className="text-xs text-ink-4">
             Persona
             <select value={persona} onChange={(e) => setPersona(e.target.value as PersonaSlug)} className={input}>
               {PERSONAS.map((p) => (
@@ -121,32 +121,32 @@ export default function AddHumanFinding({
             </select>
           </label>
         )}
-        <label className="text-xs text-slate-500">
+        <label className="text-xs text-ink-4">
           Kind
           <select value={kind} onChange={(e) => setKind(e.target.value as "like" | "dislike")} className={input}>
             <option value="dislike">Dislike</option>
             <option value="like">Like</option>
           </select>
         </label>
-        <label className="text-xs text-slate-500 sm:col-span-2">
+        <label className="text-xs text-ink-4 sm:col-span-2">
           Title (≥8 chars)
           <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} />
         </label>
-        <label className="text-xs text-slate-500 sm:col-span-2">
+        <label className="text-xs text-ink-4 sm:col-span-2">
           Detail (≥40 chars — what, where, why it matters)
           <textarea value={detail} onChange={(e) => setDetail(e.target.value)} rows={2} className={input} />
         </label>
-        <label className="text-xs text-slate-500 sm:col-span-2">
+        <label className="text-xs text-ink-4 sm:col-span-2">
           JTBD / KPI (≥5 chars — the persona job this supports or blocks)
           <input value={jtbd} onChange={(e) => setJtbd(e.target.value)} className={input} />
         </label>
         {kind === "dislike" && (
           <>
-            <label className="text-xs text-slate-500 sm:col-span-2">
+            <label className="text-xs text-ink-4 sm:col-span-2">
               Customer pain (≥20 chars, in the persona&apos;s voice)
               <input value={customerPain} onChange={(e) => setCustomerPain(e.target.value)} className={input} />
             </label>
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-4">
               Root cause
               <select value={rootCause} onChange={(e) => setRootCause(e.target.value as typeof rootCause)} className={input}>
                 {ROOT_CAUSES.map((r) => (
@@ -156,7 +156,7 @@ export default function AddHumanFinding({
                 ))}
               </select>
             </label>
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-4">
               Effort
               <select value={effort} onChange={(e) => setEffort(e.target.value as typeof effort)} className={input}>
                 {EFFORTS.map((x) => (
@@ -166,7 +166,7 @@ export default function AddHumanFinding({
                 ))}
               </select>
             </label>
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-4">
               Severity (1–5)
               <input
                 type="number"
@@ -177,20 +177,20 @@ export default function AddHumanFinding({
                 className={input}
               />
             </label>
-            <label className="text-xs text-slate-500">
+            <label className="text-xs text-ink-4">
               First action this week (≥10 chars)
               <input value={firstAction} onChange={(e) => setFirstAction(e.target.value)} className={input} />
             </label>
           </>
         )}
       </div>
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-xs text-red">{error}</p>}
       <div className="mt-3 flex items-center gap-2">
         <button
           type="button"
           disabled={busy}
           onClick={submit}
-          className="rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="rounded-md bg-accent px-3 py-1 text-sm font-semibold text-white shadow-accent hover:brightness-105 disabled:opacity-50"
         >
           {busy ? "Saving…" : "Add finding"}
         </button>
@@ -201,7 +201,7 @@ export default function AddHumanFinding({
             reset();
             setOpen(false);
           }}
-          className="text-sm text-slate-500 hover:text-slate-700"
+          className="text-sm text-ink-4 hover:text-ink-2"
         >
           cancel
         </button>

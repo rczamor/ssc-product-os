@@ -66,9 +66,9 @@ export default function ReviewControls({
       className={`rounded-md border px-2 py-0.5 text-xs font-medium disabled:opacity-50 ${
         verdict === v
           ? v === "up"
-            ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-            : "border-red-300 bg-red-100 text-red-800"
-          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+            ? "verdict-double_down"
+            : "verdict-kill"
+          : "border-line bg-card text-ink-4 hover:bg-card-alt"
       }`}
       aria-pressed={verdict === v}
     >
@@ -77,9 +77,9 @@ export default function ReviewControls({
   );
 
   return (
-    <div className="mt-2 border-t border-slate-200/70 pt-2">
+    <div className="mt-2 border-t border-line pt-2">
       <div className="flex items-center gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-ink-5">
           Your review
         </span>
         {btn("up", "▲ Agree")}
@@ -87,7 +87,7 @@ export default function ReviewControls({
         <button
           type="button"
           onClick={() => setShowComment((s) => !s)}
-          className="ml-auto text-[11px] text-indigo-600 hover:underline"
+          className="ml-auto text-[11px] text-accent hover:underline"
         >
           {showComment ? "hide note" : comment ? "edit note" : "add note"}
         </button>
@@ -99,10 +99,10 @@ export default function ReviewControls({
           onBlur={() => verdict && save(verdict)}
           placeholder="Why? (saved with your vote)"
           rows={2}
-          className="mt-2 w-full rounded-md border border-slate-200 px-2 py-1 text-xs focus:border-slate-400 focus:outline-none"
+          className="mt-2 w-full rounded-md border border-line bg-card-alt px-2 py-1 text-xs text-ink-2 focus:border-accent focus:outline-none"
         />
       )}
-      {error && <p className="mt-1 text-[11px] text-red-600">{error}</p>}
+      {error && <p className="mt-1 text-[11px] text-red">{error}</p>}
     </div>
   );
 }

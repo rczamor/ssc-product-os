@@ -1,20 +1,21 @@
 import type { Accuracy } from "@/lib/reviews";
 
 function Stat({
-  label,
   value,
-  sub,
+  valueClass,
+  label,
+  detail,
 }: {
-  label: string;
   value: string;
-  sub?: string;
+  valueClass: string;
+  label: string;
+  detail?: string;
 }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
-      <div className="text-2xl font-semibold text-slate-900">{value}</div>
-      <div className="text-xs font-medium text-slate-600">{label}</div>
-      {sub && <div className="mt-0.5 text-[11px] text-slate-400">{sub}</div>}
-    </div>
+    <span>
+      <span className={`font-mono font-semibold ${valueClass}`}>{value}</span> {label}
+      {detail && <span className="text-ink-5"> ({detail})</span>}
+    </span>
   );
 }
 
@@ -25,43 +26,40 @@ function Stat({
  * run data (lib/reviews.computeAccuracy).
  */
 export default function AccuracyStrip({ accuracy }: { accuracy: Accuracy }) {
-  const agree =
-    accuracy.agreeRate === null
-      ? "—"
-      : `${Math.round(accuracy.agreeRate * 100)}%`;
+  const agree = accuracy.agreeRate === null ? "—" : `${Math.round(accuracy.agreeRate * 100)}%`;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">AI accuracy &amp; oversight</h2>
-        <span className="text-xs text-slate-400">
+    <section className="rounded-[11px] border border-line bg-card-subtle px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-ink">AI accuracy &amp; oversight</h2>
+        <span className="font-mono text-xs text-ink-5">
           {accuracy.agentFindings} agent · {accuracy.humanFindings} human findings
         </span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-ink-3">
         <Stat
-          label="Human agree-rate on agent findings"
           value={agree}
-          sub={
+          valueClass="text-green-dark"
+          label="human agree-rate"
+          detail={
             accuracy.humanVotesOnAgent === 0
               ? "no human votes yet"
               : `${accuracy.agreeCount}/${accuracy.humanVotesOnAgent} votes · ${accuracy.agentFindingsReviewed} reviewed`
           }
         />
         <Stat
-          label="Mean judge specificity"
-          value={accuracy.meanSpecificity === null ? "—" : accuracy.meanSpecificity.toFixed(2)}
-          sub={`${accuracy.judgedCount} findings scored 1–5`}
+          value={`${accuracy.meanSpecificity === null ? "—" : accuracy.meanSpecificity.toFixed(1)} / ${
+            accuracy.meanActionability === null ? "—" : accuracy.meanActionability.toFixed(1)
+          }`}
+          valueClass="text-ink-3"
+          label="judge spec/action"
+          detail={`${accuracy.judgedCount} findings scored 1-5, LLM-as-judge`}
         />
         <Stat
-          label="Mean judge actionability"
-          value={accuracy.meanActionability === null ? "—" : accuracy.meanActionability.toFixed(2)}
-          sub="LLM-as-judge, per finding"
-        />
-        <Stat
-          label="Schema-valid on write"
           value="100%"
-          sub="zod gate blocks invalid agent output before it persists"
+          valueClass="text-ink-3"
+          label="schema-valid on write"
+          detail="zod gate blocks invalid agent output before it persists"
         />
       </div>
     </section>

@@ -40,20 +40,20 @@ export default function ApproveMatrix({
 
   if (approved) {
     return (
-      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
-        <span className="font-medium text-emerald-800">✓ Matrix approved</span>
-        <span className="text-emerald-700">
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border border-green/30 bg-green/[0.06] px-3 py-2 text-sm">
+        <span className="font-medium text-green-dark">✓ Matrix approved</span>
+        <span className="text-green-dark">
           by {approvedBy}
           {approvedAt ? ` · ${formatTimestamp(approvedAt)}` : ""}
         </span>
-        <span className="text-xs text-emerald-600">— eligible for the Linear push</span>
+        <span className="text-xs text-green">— eligible for the Linear push</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-      <div className="text-sm text-amber-800">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber/30 bg-amber/[0.06] px-3 py-2">
+      <div className="text-sm text-amber-dark">
         <span className="font-medium">Not yet approved.</span> Approving is the only trigger for
         pushing this matrix to Linear.
       </div>
@@ -63,7 +63,7 @@ export default function ApproveMatrix({
             type="button"
             disabled={busy}
             onClick={approve}
-            className="rounded-md bg-emerald-600 px-3 py-1 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+            className="rounded-md bg-green px-3 py-1 text-sm font-medium text-white hover:brightness-105 disabled:opacity-50"
           >
             {busy ? "Approving…" : "Confirm approval"}
           </button>
@@ -71,7 +71,7 @@ export default function ApproveMatrix({
             type="button"
             disabled={busy}
             onClick={() => setConfirming(false)}
-            className="text-sm text-slate-500 hover:text-slate-700"
+            className="text-sm text-ink-4 hover:text-ink-2"
           >
             cancel
           </button>
@@ -80,7 +80,7 @@ export default function ApproveMatrix({
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="ml-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700"
+          className="ml-auto rounded-md bg-accent px-3 py-1 text-sm font-semibold text-white shadow-accent hover:brightness-105"
         >
           Approve matrix
         </button>

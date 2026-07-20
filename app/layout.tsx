@@ -1,40 +1,36 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import AppHeader from "@/components/AppHeader";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
 
 export const metadata: Metadata = {
-  title: "SSC Product OS — Persona Evaluation Agents",
+  title: "SSC Product OS",
   description:
     "Admin console for AI persona agents evaluating the SecurityScorecard platform",
 };
 
+function accountLabel(): { initials: string; label: string } {
+  const email = process.env.ADMIN_EMAIL?.trim();
+  if (!email) return { initials: "A", label: "Admin" };
+  const local = email.split("@")[0];
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  const initials = (parts.length > 1 ? parts[0][0] + parts[1][0] : local.slice(0, 2)).toUpperCase();
+  const label = parts.length > 1 ? parts.map((p) => p[0].toUpperCase() + p.slice(1)).join(" ") : local;
+  return { initials, label };
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const account = accountLabel();
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <header className="border-b border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              SSC Product OS{" "}
-              <span className="font-normal text-slate-400">· persona evaluation agents</span>
-            </Link>
-            <nav className="flex gap-5 text-sm text-slate-600">
-              <Link className="hover:text-slate-900" href="/">
-                Planning
-              </Link>
-              <Link className="hover:text-slate-900" href="/work">
-                Work
-              </Link>
-              <Link className="hover:text-slate-900" href="/metrics">
-                Metrics
-              </Link>
-              <Link className="hover:text-slate-900" href="/personas">
-                Personas
-              </Link>
-            </nav>
-          </div>
-        </header>
-        <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+        <div className="min-h-screen bg-paper">
+          <AppHeader initials={account.initials} label={account.label} />
+          <main className="mx-auto max-w-[1240px] px-6 py-[26px] pb-[70px]">{children}</main>
+        </div>
       </body>
     </html>
   );

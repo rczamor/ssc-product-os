@@ -7,18 +7,20 @@ import {
 } from "@/lib/schemas/findings";
 
 const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  running: "bg-blue-50 text-blue-700 ring-blue-200",
-  failed: "bg-red-50 text-red-700 ring-red-200",
-  queued: "bg-amber-50 text-amber-700 ring-amber-200",
-  claimed: "bg-blue-50 text-blue-700 ring-blue-200",
-  cancelled: "bg-slate-100 text-slate-500 ring-slate-200",
+  completed: "verdict-double_down",
+  running: "border-accent/30 bg-accent/10 text-accent",
+  failed: "verdict-kill",
+  queued: "verdict-fix",
+  claimed: "border-accent/30 bg-accent/10 text-accent",
+  cancelled: "border-line text-ink-4",
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const style = STATUS_STYLES[status] ?? "bg-slate-100 text-slate-600 ring-slate-200";
+  const style = STATUS_STYLES[status] ?? "border-line text-ink-4";
   return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${style}`}>
+    <span
+      className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${style}`}
+    >
       {status}
     </span>
   );
@@ -26,22 +28,18 @@ export function StatusBadge({ status }: { status: string }) {
 
 export function PersonaBadge({ persona }: { persona: string }) {
   return (
-    <span className="inline-flex rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-200">
+    <span
+      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium persona-${persona}`}
+    >
       {PERSONA_LABELS[persona as PersonaSlug] ?? persona}
     </span>
   );
 }
 
-const VERDICT_STYLES: Record<string, string> = {
-  kill: "bg-red-50 text-red-700 ring-red-200",
-  fix: "bg-amber-50 text-amber-700 ring-amber-200",
-  double_down: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-};
-
 export function VerdictBadge({ verdict }: { verdict: string }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${VERDICT_STYLES[verdict] ?? ""}`}
+      className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide verdict-${verdict}`}
     >
       {VERDICT_LABELS[verdict as keyof typeof VERDICT_LABELS] ?? verdict}
     </span>
@@ -51,7 +49,7 @@ export function VerdictBadge({ verdict }: { verdict: string }) {
 export function RootCauseBadge({ rootCause }: { rootCause: string | null }) {
   if (!rootCause) return null;
   return (
-    <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">
+    <span className="inline-flex rounded-md border border-line bg-card-alt px-2 py-0.5 text-[11px] font-medium text-ink-3">
       {ROOT_CAUSE_LABELS[rootCause as RootCause] ?? rootCause}
     </span>
   );

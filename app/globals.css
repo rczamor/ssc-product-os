@@ -1,10 +1,64 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/*
+ * Design tokens extracted from the "SSC Product OS" Claude Design mockup
+ * (warm cream / ink palette, Inter + JetBrains Mono). @theme makes each
+ * --color-* token available as a matching Tailwind utility (bg-ink, text-ink-3,
+ * border-line, etc.) alongside the stock palette.
+ */
+@theme {
+  --color-paper: #efece6;
+  --color-card: #ffffff;
+  --color-card-alt: #faf8f3;
+  --color-card-subtle: #f2ede4;
+
+  --color-line: #e5e0d6;
+  --color-line-2: #eee7dc;
+  --color-line-3: #d8d2c6;
+
+  --color-ink: #262019;
+  --color-ink-2: #403829;
+  --color-ink-3: #5a5142;
+  --color-ink-4: #6b6152;
+  --color-ink-5: #98907f;
+  --color-ink-6: #a29a89;
+
+  --color-accent: #2b5bd7;
+  --color-accent-hover: #1f47ab;
+
+  --color-green: #1f9d63;
+  --color-green-dark: #1f7d51;
+  --color-amber: #b07714;
+  --color-amber-dark: #8a5d10;
+  --color-red: #cc3b46;
+  --color-red-dark: #b6353f;
+  --color-violet: #6d4bd0;
+
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+
+  --shadow-card: 0 1px 2px rgba(38, 32, 25, 0.05), 0 6px 20px rgba(38, 32, 25, 0.05);
+  --shadow-panel: -24px 0 60px rgba(38, 32, 25, 0.16);
+  --shadow-accent: 0 4px 14px rgba(43, 91, 215, 0.22);
+}
+
 :root {
   color-scheme: light;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased;
+  @apply bg-paper text-ink antialiased;
+  font-family: var(--font-sans);
 }
+
+/* Verdict/recommendation tri-state used across Planning and Work — the
+   colored strip on a Kill/Fix/Double-Down chip. */
+.verdict-kill { color: var(--color-red); background: rgba(204, 59, 70, 0.09); border-color: rgba(204, 59, 70, 0.3); }
+.verdict-fix { color: var(--color-amber); background: rgba(176, 119, 20, 0.1); border-color: rgba(176, 119, 20, 0.32); }
+.verdict-double_down { color: var(--color-green); background: rgba(31, 157, 99, 0.1); border-color: rgba(31, 157, 99, 0.3); }
+
+/* Persona badge tri-color (CISO/VRM/GTM_CS), matching the mockup's dot+label chips. */
+.persona-ciso { color: var(--color-accent); background: rgba(43, 91, 215, 0.07); border-color: rgba(43, 91, 215, 0.28); }
+.persona-vrm { color: var(--color-green); background: rgba(31, 157, 99, 0.07); border-color: rgba(31, 157, 99, 0.28); }
+.persona-gtm_cs { color: var(--color-violet); background: rgba(109, 75, 208, 0.07); border-color: rgba(109, 75, 208, 0.28); }

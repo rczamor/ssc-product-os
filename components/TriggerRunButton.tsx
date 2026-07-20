@@ -40,16 +40,16 @@ export default function TriggerRunButton() {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-slate-900">Trigger a new evaluation run</h2>
+    <div className="rounded-[11px] border border-line bg-card p-5 shadow-card">
+      <h2 className="text-sm font-semibold text-ink">Trigger a new evaluation run</h2>
       <div className="mt-3 flex flex-wrap items-center gap-4">
         {PERSONAS.map((p) => (
-          <label key={p} className="flex items-center gap-2 text-sm text-slate-700">
+          <label key={p} className="flex items-center gap-2 text-sm text-ink-2">
             <input
               type="checkbox"
               checked={selected.includes(p)}
               onChange={() => toggle(p)}
-              className="h-4 w-4 rounded border-slate-300"
+              className="h-4 w-4 rounded border-line-3 accent-accent"
             />
             {PERSONA_LABELS[p]}
           </label>
@@ -58,17 +58,17 @@ export default function TriggerRunButton() {
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Note (optional)"
-          className="min-w-48 flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-slate-500 focus:outline-none"
+          className="min-w-48 flex-1 rounded-lg border border-line-3 bg-card-alt px-3 py-1.5 text-sm text-ink-2 focus:border-accent focus:outline-none"
         />
         <button
           onClick={submit}
           disabled={busy || selected.length === 0}
-          className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="rounded-lg bg-accent px-4 py-1.5 text-sm font-semibold text-white shadow-accent hover:brightness-105 disabled:opacity-50"
         >
           {busy ? "Queueing…" : "Queue run"}
         </button>
       </div>
-      {message && <p className="mt-3 text-sm text-slate-500">{message}</p>}
+      {message && <p className="mt-3 text-sm text-ink-4">{message}</p>}
     </div>
   );
 }

@@ -68,10 +68,10 @@ export default function PushToLinear({ runId, approved }: { runId: string; appro
   const pushed = Boolean(state?.pushedAt);
 
   return (
-    <div className="mt-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+    <div className="mt-3 rounded-lg border border-line bg-card px-3 py-2">
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-medium text-slate-800">Linear push</span>
-        <span className="text-slate-500">
+        <span className="font-medium text-ink-2">Linear push</span>
+        <span className="text-ink-4">
           {draftCount > 0 ? `${draftCount} tickets drafted from the matrix` : "preparing draft…"}
           {state && !state.linearConfigured && " · LINEAR_API_KEY not set"}
         </span>
@@ -79,7 +79,7 @@ export default function PushToLinear({ runId, approved }: { runId: string; appro
           type="button"
           onClick={push}
           disabled={busy}
-          className="ml-auto rounded-md bg-slate-900 px-3 py-1 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+          className="ml-auto rounded-md bg-accent px-3 py-1 text-sm font-semibold text-white shadow-accent hover:brightness-105 disabled:opacity-50"
         >
           {busy ? "Pushing…" : pushed ? "Re-check push" : "Push to Linear"}
         </button>
@@ -92,14 +92,14 @@ export default function PushToLinear({ runId, approved }: { runId: string; appro
               href={p.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
+              className="rounded-md border border-green/30 bg-green/[0.06] px-1.5 py-0.5 font-mono text-[11px] font-medium text-green-dark hover:bg-green/10"
             >
               {p.identifier ?? "issue"}
             </a>
           ))}
         </div>
       )}
-      {msg && <p className="mt-1 text-xs text-slate-500">{msg}</p>}
+      {msg && <p className="mt-1 text-xs text-ink-4">{msg}</p>}
     </div>
   );
 }

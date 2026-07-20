@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EffortSchema, PersonaSlugSchema, RootCauseSchema } from "./findings";
+import { EffortSchema, KfdVerdictSchema, PersonaSlugSchema, RootCauseSchema } from "./findings";
 
 /** A finding review verdict. */
 export const ReviewVerdictSchema = z.enum(["up", "down"]);
@@ -46,6 +46,10 @@ export const CreateHumanFindingSchema = z
     effort: EffortSchema.nullish(),
     firstAction: z.string().min(10).max(500).nullish(),
     severity: z.number().int().min(1).max(5).nullish(),
+    /** Recommend verdict (kill/fix/double_down) chosen in the Add-a-theme form.
+     *  Optional: when absent the query layer derives it (likes→double_down,
+     *  dislikes→the KFD row that cites them). */
+    verdict: KfdVerdictSchema.nullish(),
   })
   .superRefine((v, ctx) => {
     if (v.kind !== "dislike") return;

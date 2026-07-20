@@ -36,78 +36,113 @@ export default function MetricCard({ card }: { card: MetricCardData }) {
   const [open, setOpen] = useState(false);
   const { metric, currentValue, series, trippedCount, trippedExamples, linkedFeatures } = card;
 
+  const tripped = trippedCount > 0;
+  // Metric 3 (Usage Frequency) is judged against a rhythm baseline band; when it
+  // is not tripped it reads as "in band" (green). Everything else is neutral ink
+  // unless a trigger fired (red). Amber is reserved for the health board only.
+  const inBand = !tripped && metric.vizType === "baseline band";
+  const valueClass = tripped ? "text-red" : inBand ? "text-green" : "text-ink";
+  const sparkColor = tripped ? "#cc3b46" : inBand ? "#1f9d63" : "#262019";
+
+  const trippedTrigger =
+    trippedExamples.find((e) => e.triggerText)?.triggerText ?? metric.actionTrigger;
+  const relatedFeatures = linkedFeatures.map((f) => f.name).join(" · ") || "—";
+
   return (
     <div
-      className={`rounded-[11px] border bg-card p-4 shadow-card ${
-        trippedCount > 0 ? "border-amber/40" : "border-line"
+      role="button"
+      tabIndex={0}
+      onClick={() => setOpen((o) => !o)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setOpen((o) => !o);
+        }
+      }}
+      className={`cursor-pointer overflow-hidden rounded-[10px] border bg-card hover:border-line-4 ${
+        tripped ? "border-[rgba(204,59,70,0.3)]" : "border-line"
       }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="font-mono text-xs text-ink-5">#{metric.id}</div>
-          <h3 className="text-sm font-semibold text-ink">{metric.name}</h3>
-        </div>
-        {trippedCount > 0 && (
-          <span className="shrink-0 rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-semibold text-amber-dark">
-            {trippedCount} tripped
-          </span>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <div className="font-mono text-2xl font-semibold text-ink">
-          {currentValue === null ? "—" : formatValue(currentValue, metric.unit)}
-        </div>
-        <Sparkline
-          values={series}
-          strokeClassName={trippedCount > 0 ? "stroke-amber" : "stroke-accent"}
-        />
-      </div>
-      <div className="mt-1 text-[11px] text-ink-5">{metric.vizType} · {metric.cadence}</div>
-
-      {trippedExamples.length > 0 && (
-        <ul className="mt-3 space-y-1">
-          {trippedExamples.map((ex) => (
-            <li key={ex.featureKey} className="rounded bg-amber/10 px-2 py-1 text-[11px] text-amber-dark">
-              <span className="font-medium">{ex.featureName}:</span> {ex.triggerText}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="mt-3 text-xs text-accent hover:underline"
-      >
-        {open ? "hide details" : "show details"}
-      </button>
-
-      {open && (
-        <div className="mt-2 space-y-2 border-t border-line-2 pt-2 text-xs text-ink-4">
-          <p>{metric.definition}</p>
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1">
-            <dt className="text-ink-5">Source</dt>
-            <dd>{metric.source} <span className="text-ink-5">(target integration — data shown is a generated sample)</span></dd>
-            <dt className="text-ink-5">Owner</dt>
-            <dd>{metric.owner}</dd>
-            <dt className="text-ink-5">Action trigger</dt>
-            <dd className="col-span-2">{metric.actionTrigger}</dd>
-          </dl>
-          {linkedFeatures.length > 0 && (
-            <div>
-              <div className="text-ink-5">Linked features</div>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {linkedFeatures.map((f) => (
-                  <span key={f.key} className="rounded bg-card-subtle px-1.5 py-0.5 text-ink-3">
-                    {f.name}
-                  </span>
-                ))}
-              </div>
-            </div>
+      <div className="px-[14px] py-[13px]">
+        <div className="mb-[9px] flex items-center gap-[7px]">
+          <span className="font-mono text-[10px] text-ink-7">{metric.id}</span>
+          <span className="text-[12.5px] font-semibold text-ink">{metric.name}</span>
+          {tripped && (
+            <span className="ml-auto rounded-[4px] border border-[rgba(204,59,70,0.28)] bg-[rgba(204,59,70,0.1)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.04em] text-red-dark">
+              triggered
+            </span>
           )}
         </div>
+
+        <div className="flex items-end justify-between gap-[10px]">
+          <div>
+            <div className="flex items-baseline gap-[5px]">
+              <span
+                className={`font-mono text-[26px] font-bold leading-none tracking-[-0.02em] ${valueClass}`}
+              >
+                {currentValue === null
+                  ? "—"
+                  : inBand
+                    ? "in band"
+                    : formatValue(currentValue, metric.unit)}
+              </span>
+            </div>
+            <div className="mt-0.5 text-[10.5px] text-ink-6">{metric.definition}</div>
+          </div>
+          {series.length >= 2 && (
+            <Sparkline values={series} width={116} height={28} strokeWidth={1.5} opacity={0.9} color={sparkColor} />
+          )}
+        </div>
+
+        <div className="mt-[9px] font-mono text-[9.5px] text-ink-7">{metric.vizType}</div>
+      </div>
+
+      {tripped && (
+        <div className="border-t border-[rgba(204,59,70,0.14)] bg-[rgba(204,59,70,0.04)] px-[14px] py-[9px] text-[11px] leading-[1.45] text-red-strip">
+          {trippedTrigger}
+        </div>
       )}
+
+      {open && (
+        <div className="border-t border-line-2 bg-card-alt px-[14px] py-[13px]">
+          <div className="mb-[11px] text-[11.5px] leading-[1.5] text-ink-4">{metric.definition}</div>
+          <div className="mb-[11px] grid grid-cols-2 gap-x-[12px] gap-y-[8px]">
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Source</div>
+              <div className="text-[11.5px] text-ink-2">{metric.source}</div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Owner</div>
+              <div className="text-[11.5px] text-ink-2">{metric.owner}</div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Cadence</div>
+              <div className="text-[11.5px] text-ink-2">{metric.cadence}</div>
+            </div>
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Related features</div>
+              <div className="text-[11.5px] text-ink-2">{relatedFeatures}</div>
+            </div>
+          </div>
+          <div className="rounded-[6px] border border-line-2 bg-card px-[11px] py-[9px]">
+            <div className="mb-[3px] text-[9px] uppercase tracking-[0.06em] text-ink-7">Action trigger</div>
+            <div className="text-[11.5px] leading-[1.45] text-ink-3">{metric.actionTrigger}</div>
+          </div>
+          <div className="mt-[9px] text-[10.5px] leading-[1.45] text-ink-6">
+            {metric.source} is a target integration; the values shown are a generated 12-week sample.
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-center gap-2 border-t border-line-2 bg-card-alt py-[10px] text-[11.5px] font-semibold text-accent">
+        <span>{open ? "Collapse" : "Expand details"}</span>
+        <span
+          className="inline-flex h-[18px] w-[18px] items-center justify-center rounded-[5px] border text-[11px] leading-none"
+          style={{ background: "var(--accent-bg)", borderColor: "var(--accent-bd)" }}
+        >
+          {open ? "▾" : "▸"}
+        </span>
+      </div>
     </div>
   );
 }

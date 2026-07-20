@@ -12,7 +12,20 @@ export const metadata: Metadata = {
     "Admin console for AI persona agents evaluating the SecurityScorecard platform",
 };
 
+/**
+ * Chrome identity (A19). Prefers ADMIN_DISPLAY_NAME ("Riché Zamor" → "RZ" /
+ * "Riché Z."); otherwise derives a best-effort label from ADMIN_EMAIL.
+ */
 function accountLabel(): { initials: string; label: string } {
+  const display = process.env.ADMIN_DISPLAY_NAME?.trim();
+  if (display) {
+    const words = display.split(/\s+/).filter(Boolean);
+    const initials = (
+      words.length > 1 ? words[0][0] + words[words.length - 1][0] : words[0].slice(0, 2)
+    ).toUpperCase();
+    const label = words.length > 1 ? `${words[0]} ${words[words.length - 1][0]}.` : words[0];
+    return { initials, label };
+  }
   const email = process.env.ADMIN_EMAIL?.trim();
   if (!email) return { initials: "A", label: "Admin" };
   const local = email.split("@")[0];
@@ -29,7 +42,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <div className="min-h-screen bg-paper">
           <AppHeader initials={account.initials} label={account.label} />
-          <main className="mx-auto max-w-[1240px] px-6 py-[26px] pb-[70px]">{children}</main>
+          {/* Bare wrapper — each screen sets its own max-width/padding so Work &
+              Measure can be 1300px while Plan is 1240px, matching the mockup. */}
+          <main>{children}</main>
         </div>
       </body>
     </html>

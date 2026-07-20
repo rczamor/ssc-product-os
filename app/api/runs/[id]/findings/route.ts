@@ -57,6 +57,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         effort: isDislike ? f.effort ?? null : null,
         firstAction: isDislike ? f.firstAction ?? null : null,
         severity: isDislike ? f.severity ?? null : null,
+        // Human-chosen Recommend verdict when supplied; otherwise leave null and
+        // let the query layer derive it (likes→double_down, dislikes→KFD).
+        verdict: f.verdict ?? (f.kind === "like" ? "double_down" : null),
         origin: "human",
         screenshotIds: [],
         raw: f,

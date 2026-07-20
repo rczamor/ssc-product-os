@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { loadPersonas, loadSharedCorpus, type CorpusDoc } from "@/lib/personas";
@@ -71,6 +72,12 @@ export default async function PersonasPage() {
             <h2 className="text-base font-semibold text-ink">{p.name}</h2>
             <PersonaBadge persona={p.slug} />
             <span className="text-sm text-ink-4">{p.title}</span>
+            <Link
+              href={`/personas/${p.slug}`}
+              className="ml-auto text-xs font-medium text-accent hover:underline"
+            >
+              Open detail view →
+            </Link>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-ink-3">{p.companyProfile}</p>
 

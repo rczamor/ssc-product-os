@@ -23,17 +23,24 @@
   --color-ink-4: #6b6152;
   --color-ink-5: #98907f;
   --color-ink-6: #a29a89;
+  --color-ink-7: #b8b1a3;
 
   --color-accent: #2b5bd7;
   --color-accent-hover: #1f47ab;
 
   --color-green: #1f9d63;
   --color-green-dark: #1f7d51;
+  --color-green-mid: #4a9d6f;
   --color-amber: #b07714;
   --color-amber-dark: #8a5d10;
   --color-red: #cc3b46;
   --color-red-dark: #b6353f;
+  --color-red-strip: #a33540;
   --color-violet: #6d4bd0;
+
+  /* Extra hairline used on dashed buttons / hover borders in the mockup. */
+  --color-line-4: #c8c1b2;
+  --color-avatar: #ece7de;
 
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
@@ -45,11 +52,36 @@
 
 :root {
   color-scheme: light;
+  /* Accent triple for inline/arbitrary-value use (the mockup binds --accent,
+     --accent-bg, --accent-bd on View↗ pills, add-theme, connect panels, the
+     timeline axis gradient, and metric expand chevrons). */
+  --accent: #2b5bd7;
+  --accent-bg: rgba(43, 91, 215, 0.08);
+  --accent-bd: rgba(43, 91, 215, 0.28);
 }
 
 body {
   @apply bg-paper text-ink antialiased;
   font-family: var(--font-sans);
+}
+
+/* Slide-over panels (Ticket detail, Friday Update) and the Persona detail
+   page enter with this. */
+@keyframes fadeup {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fadeup {
+  animation: fadeup 0.3s ease;
+}
+.animate-fadeup-fast {
+  animation: fadeup 0.25s ease;
 }
 
 /* Verdict/recommendation tri-state used across Planning and Work — the

@@ -11,6 +11,7 @@ export default async function WorkPage() {
       issues={board.issues}
       lastSyncedAt={board.lastSyncedAt ? board.lastSyncedAt.toISOString() : null}
       fridayUpdate={fridayUpdate}
+      now={new Date().toISOString()}
     />
   );
 }

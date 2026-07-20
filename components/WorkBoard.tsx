@@ -109,10 +109,16 @@ export default function WorkBoard({
   issues,
   lastSyncedAt,
   fridayUpdate,
+  now: nowIso,
 }: {
   issues: WorkIssue[];
   lastSyncedAt: string | null;
   fridayUpdate: FridayUpdateData | null;
+  /** Server render-time timestamp (ISO). Threaded from the server so the
+   *  time-relative timeline buckets are identical on SSR and hydration — a
+   *  client-side `new Date()` would diverge from the server near a day
+   *  boundary and trip a hydration mismatch. */
+  now: string;
 }) {
   const router = useRouter();
   const [track, setTrack] = useState<Track>("internal");
@@ -120,7 +126,7 @@ export default function WorkBoard({
   const [openTicketId, setOpenTicketId] = useState<string | null>(null);
   const [fridayOpen, setFridayOpen] = useState(false);
 
-  const now = useMemo(() => new Date(), []);
+  const now = useMemo(() => new Date(nowIso), [nowIso]);
 
   // Top-level issues per track (the toggle counts + all board views count top-level only).
   const topLevel = useMemo(() => issues.filter((i) => !i.parentId), [issues]);

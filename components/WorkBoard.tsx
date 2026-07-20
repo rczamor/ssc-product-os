@@ -155,7 +155,7 @@ export default function WorkBoard({
   );
 
   return (
-    <div className="mx-auto max-w-[1300px] px-6 pt-[26px] pb-[80px] animate-fadeup">
+    <div className="mx-auto max-w-[1300px] px-6 pt-[26px] pb-[28px] animate-fadeup">
       {/* Header */}
       <div className="mb-[18px] flex flex-wrap items-end justify-between gap-5">
         <div>
@@ -225,7 +225,9 @@ export default function WorkBoard({
             return (
               <div
                 key={b.key}
-                className="grid grid-cols-[150px_1fr] border-b border-line-2 px-[18px] py-[13px] last:border-b-0"
+                className={`grid grid-cols-[150px_1fr] border-b border-line-2 px-[18px] py-[13px] last:border-b-0 ${
+                  isShipped ? "mt-[6px] border-t border-line bg-card-subtle" : ""
+                }`}
               >
                 <div className="pr-[14px]">
                   {isShipped ? (

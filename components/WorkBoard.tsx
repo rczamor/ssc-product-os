@@ -142,8 +142,9 @@ export default function WorkBoard({
       } else if (!res.ok) {
         setSyncMsg("sync failed");
       } else {
-        const data = (await res.json().catch(() => ({}))) as { synced?: number };
-        setSyncMsg(typeof data.synced === "number" ? `synced ${data.synced} issues` : "synced");
+        // Refresh the board from the freshly-synced cache. Don't set a sticky
+        // message — router.refresh() updates lastSyncedAt so the live "synced
+        // just now" label takes over rather than freezing on a fixed count.
         router.refresh();
       }
     } catch {

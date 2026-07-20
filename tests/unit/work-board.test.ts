@@ -16,6 +16,7 @@ const issue = (over: Partial<WorkIssue>): WorkIssue => ({
   parentId: null,
   url: null,
   dueDate: null,
+  completedAt: null,
   ...over,
 });
 

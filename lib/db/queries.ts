@@ -5,6 +5,7 @@ import {
   deliverables,
   feedbackItems,
   findings,
+  fridayUpdates,
   linearCache,
   linearSyncState,
   metricObservations,
@@ -19,6 +20,7 @@ import {
   type FeedbackSource,
 } from "@/lib/schemas/feedback";
 import type { MetricObservation } from "@/lib/schemas/metrics";
+import { FridayUpdateSchema, type FridayUpdate } from "@/lib/schemas/friday";
 import { isUuid } from "@/lib/validation";
 
 export interface RunWithCounts {
@@ -84,6 +86,7 @@ export interface WorkIssue {
   parentId: string | null;
   url: string | null;
   dueDate: string | null;
+  completedAt: string | null;
 }
 
 export interface WorkBoard {
@@ -113,6 +116,7 @@ export async function getWorkBoard(): Promise<WorkBoard> {
       parentId: r.parentId,
       url: r.url,
       dueDate: r.dueDate,
+      completedAt: r.completedAt ? r.completedAt.toISOString() : null,
     })),
     lastSyncedAt: sync?.lastSyncedAt ?? null,
     issueCount: sync?.issueCount ?? rows.length,
@@ -289,4 +293,108 @@ export async function getRunDetail(id: string) {
     reviews: reviewRows,
     approval: approvalRows[0] ?? null,
   };
+}
+
+export interface FridayFinding {
+  key: string;
+  persona: string;
+  origin: string;
+  kind: string;
+  title: string;
+  customerPain: string | null;
+  severity: number | null;
+  specificityScore: number | null;
+  actionabilityScore: number | null;
+}
+
+export interface FridayReview {
+  findingKey: string;
+  persona: string;
+  reviewerType: string;
+  verdict: string;
+}
+
+export interface FridayInputs {
+  issues: WorkIssue[];
+  observations: MetricObservation[];
+  /** Total platform-review runs executed to date — the Friday Update's
+   *  "workflows run count" for the AI-usage section. */
+  runsCount: number;
+  /** Findings from the most recent run (mirrors the Planning dashboard's
+   *  choice of "current run"), for the customer-impact and accuracy sections. */
+  findings: FridayFinding[];
+  reviews: FridayReview[];
+}
+
+/** Everything buildFridayUpdate needs, gathered in one place (Phase 5). */
+export async function getFridayInputs(): Promise<FridayInputs> {
+  const db = await getDb();
+  const [board, observations, [{ count: runsCountRaw } = { count: 0 }], [latestRun]] =
+    await Promise.all([
+      getWorkBoard(),
+      getMetricObservations(),
+      db.select({ count: sql<number>`count(*)` }).from(runs),
+      db.select({ id: runs.id }).from(runs).orderBy(desc(runs.startedAt)).limit(1),
+    ]);
+
+  let findingRows: FridayFinding[] = [];
+  let reviewRows: FridayReview[] = [];
+  if (latestRun) {
+    [findingRows, reviewRows] = await Promise.all([
+      db
+        .select({
+          key: findings.key,
+          persona: findings.persona,
+          origin: findings.origin,
+          kind: findings.kind,
+          title: findings.title,
+          customerPain: findings.customerPain,
+          severity: findings.severity,
+          specificityScore: findings.specificityScore,
+          actionabilityScore: findings.actionabilityScore,
+        })
+        .from(findings)
+        .where(eq(findings.runId, latestRun.id)),
+      db
+        .select({
+          findingKey: reviews.findingKey,
+          persona: reviews.persona,
+          reviewerType: reviews.reviewerType,
+          verdict: reviews.verdict,
+        })
+        .from(reviews)
+        .where(eq(reviews.runId, latestRun.id)),
+    ]);
+  }
+
+  return {
+    issues: board.issues,
+    observations,
+    runsCount: Number(runsCountRaw),
+    findings: findingRows,
+    reviews: reviewRows,
+  };
+}
+
+/** The current Friday Update, or null before the first generation. */
+export async function getLatestFridayUpdate(): Promise<FridayUpdate | null> {
+  const db = await getDb();
+  const [row] = await db.select().from(fridayUpdates).where(eq(fridayUpdates.id, "latest"));
+  if (!row) return null;
+  return FridayUpdateSchema.parse(row.body);
+}
+
+/**
+ * Store a freshly generated Friday Update, replacing any prior one wholesale
+ * (delete-then-insert — same idempotency idiom as `syncProjectToCache` and
+ * `seed-metrics.ts`'s reseed) so "regenerate" never accumulates stale rows.
+ */
+export async function saveFridayUpdate(update: FridayUpdate): Promise<void> {
+  const db = await getDb();
+  await db.delete(fridayUpdates);
+  await db.insert(fridayUpdates).values({
+    id: "latest",
+    body: update,
+    generatedAt: new Date(update.generatedAt),
+  });
 }

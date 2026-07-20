@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { formatTimestamp } from "@/lib/validation";
 import type { WorkIssue } from "@/lib/db/queries";
 import { buildTimeline, trackOf, type Track } from "@/lib/work-board";
@@ -24,8 +26,14 @@ type View = "kanban" | "timeline";
 
 const PRIORITY_LABEL: Record<number, string> = { 1: "Urgent", 2: "High", 3: "Medium", 4: "Low" };
 
+/**
+ * Expandable so a ticket's full description — e.g. the role-plan PM-assessment
+ * ticket's complete Prompt-5 "how" (spec 5.2) — is readable in this app, not
+ * only by following the external Linear link.
+ */
 function IssueCard({ issue, sub }: { issue: WorkIssue; sub?: boolean }) {
   const track = trackOf(issue);
+  const [open, setOpen] = useState(false);
   return (
     <div
       className={`rounded-lg border bg-white px-3 py-2 text-sm shadow-sm ${
@@ -70,7 +78,21 @@ function IssueCard({ issue, sub }: { issue: WorkIssue; sub?: boolean }) {
             </span>
           ))}
         {issue.dueDate && <span className="text-slate-400">due {issue.dueDate}</span>}
+        {issue.description && (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className="ml-auto text-indigo-600 hover:underline"
+          >
+            {open ? "hide details" : "show details"}
+          </button>
+        )}
       </div>
+      {open && issue.description && (
+        <div className="prose prose-sm mt-2 max-w-none border-t border-slate-100 pt-2 text-xs text-slate-600 prose-p:my-1 prose-headings:my-1">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{issue.description}</ReactMarkdown>
+        </div>
+      )}
     </div>
   );
 }

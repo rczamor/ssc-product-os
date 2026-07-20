@@ -13,19 +13,45 @@ import { eq } from "drizzle-orm";
 const createIssueCalls: Array<{ title: string; parentId?: string }> = [];
 let nextIssueId = 0;
 
+// Mirrors the real config/linear.json's actual label set (lib/linear.ts's
+// labelId/stateId throw on anything not in this map, exactly like the real
+// implementation) — not just enough entries to make this test's drafts pass,
+// so a ticket carrying a label genuinely absent from Linear's config would
+// fail here too, the same way it would against the real client.
+const MOCK_CONFIG = {
+  team: { id: "team-1", key: "TRZ", name: "Test Team" },
+  project: { id: "project-1", name: "Test Project", url: "https://linear.app/test" },
+  labels: {
+    "track:internal": "label-track-internal",
+    "track:external": "label-track-external",
+    "phase:48h": "label-phase-48h",
+    "phase:week-1": "label-phase-week-1",
+    "phase:week-2": "label-phase-week-2",
+    "phase:week-3": "label-phase-week-3",
+    "phase:day-30": "label-phase-day-30",
+    "origin:matrix": "label-origin-matrix",
+    "origin:os-build": "label-origin-os-build",
+    "origin:role-plan": "label-origin-role-plan",
+  } as Record<string, string>,
+  states: { Backlog: "state-backlog", Todo: "state-todo", "In Progress": "state-in-progress", "In Review": "state-in-review", Done: "state-done" } as Record<string, string>,
+  priorities: { urgent: 1, high: 2, medium: 3, low: 4 },
+  day0: "2026-07-20",
+  buildEpics: {},
+};
+
 vi.mock("@/lib/linear", () => ({
   isLinearConfigured: () => true,
-  getLinearConfig: () => ({
-    team: { id: "team-1", key: "TRZ", name: "Test Team" },
-    project: { id: "project-1", name: "Test Project", url: "https://linear.app/test" },
-    labels: { "track:external": "label-external", "origin:matrix": "label-matrix" },
-    states: { Done: "state-done", Todo: "state-todo" },
-    priorities: { urgent: 1, high: 2, medium: 3, low: 4 },
-    day0: "2026-07-20",
-    buildEpics: {},
-  }),
-  labelId: (name: string) => `label-${name}`,
-  stateId: (name: string) => `state-${name}`,
+  getLinearConfig: () => MOCK_CONFIG,
+  labelId: (name: string) => {
+    const id = MOCK_CONFIG.labels[name];
+    if (!id) throw new Error(`unknown Linear label: ${name}`);
+    return id;
+  },
+  stateId: (name: string) => {
+    const id = MOCK_CONFIG.states[name];
+    if (!id) throw new Error(`unknown Linear state: ${name}`);
+    return id;
+  },
   getLinearClient: () => ({
     createIssue: async (input: { title: string; parentId?: string }) => {
       createIssueCalls.push({ title: input.title, parentId: input.parentId });
@@ -73,10 +99,14 @@ describe("pushDraftToLinear (push idempotency)", () => {
     await db.insert(ticketDrafts).values({ runId: run.id, draft });
 
     const firstPush = await pushDraftToLinear(db, run.id);
-    // fix -> 1 parent + 3 sub-issues (firstAction + acceptance + metric); kill -> 1 parent, no subs.
     expect(firstPush).toHaveLength(2);
+    // fix -> 1 parent + exactly 3 sub-issues (firstAction + acceptance + metric,
+    // per draftTicketsFromDeliverable); kill -> 1 parent, no subs. An exact
+    // count (not just ">2") so a regression dropping a sub-issue is caught.
+    expect(firstPush[0].subIssueIds).toHaveLength(3);
+    expect(firstPush[1].subIssueIds).toHaveLength(0);
     const firstCallCount = createIssueCalls.length;
-    expect(firstCallCount).toBeGreaterThan(2); // parents + the fix epic's sub-issues
+    expect(firstCallCount).toBe(5); // 1 fix-parent + 3 subs + 1 kill-parent
 
     const secondPush = await pushDraftToLinear(db, run.id);
     expect(createIssueCalls.length).toBe(firstCallCount); // no new issues created

@@ -1,0 +1,309 @@
+{
+  "_note": "Live review-site feedback for SecurityScorecard, gathered 2026-07-20. Direct headless scraping of Capterra/G2/TrustRadius was bot-walled (see `attempts`); real reviews were recovered from the public review sites via the review-aggregator crawl (PeerSpot, which syndicates G2/TrustRadius/PeerSpot reviews, plus TrustRadius and G2 result snippets). Every item below is a real, published reviewer quote with attribution. Ratings normalized to a 0-5 scale (x/10 → x/2); left null when the source did not show a numeric rating. sourceUrl is null because per-review permalinks were not recoverable — dedupe falls back to the content hash.",
+  "scrapedAt": "2026-07-20T03:55:00.000Z",
+  "attempts": [
+    { "source": "capterra", "outcome": "blocked", "count": 0, "note": "Cloudflare bot wall / challenge page (direct headless)" },
+    { "source": "g2", "outcome": "error", "count": 0, "note": "page.evaluate injection error; reviews recovered via aggregator snippet instead" },
+    { "source": "trustradius", "outcome": "blocked", "count": 0, "note": "Cloudflare bot wall / challenge page (direct headless); reviews recovered via aggregator" },
+    { "source": "peerspot", "outcome": "ok", "count": 26, "note": "Review aggregator crawl (Tavily + fetch) — primary recovered source" }
+  ],
+  "items": [
+    {
+      "source": "peerspot",
+      "reviewDate": "Jan 15, 2026",
+      "rating": 4.0,
+      "title": "Score polluted by acquired portfolio-company vulnerabilities",
+      "body": "Because my company was acquired by a bigger organization, SecurityScorecard started associating other portfolio company vulnerabilities to our score, which was not helpful because it was giving us wrong data and giving us vulnerabilities we did not have.",
+      "reviewerRoleRaw": "IT operations risk analyst, energy/utilities (10,001+ employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Jan 15, 2026",
+      "rating": 4.0,
+      "title": "Wants correct domain-to-data attribution",
+      "body": "If SecurityScorecard could improve anything, it would be making sure the algorithm pulls the right data for the right domain.",
+      "reviewerRoleRaw": "IT operations risk analyst, energy/utilities (10,001+ employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "trustradius",
+      "reviewDate": "2026",
+      "rating": null,
+      "title": "Ratings are public-data-based and can be inaccurate",
+      "body": "The risk score is based on publicly available data and can be inaccurate. You should not base your assessment solely on the risk score provided.",
+      "reviewerRoleRaw": "Verified User (vendor risk management), Anonymous",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 29, 2025",
+      "rating": 4.5,
+      "title": "A lot of false positives, no quick self-service refute",
+      "body": "It might be good to understand how to quickly fix or report the quite a lot of false positives, perhaps through a self-checkout feature.",
+      "reviewerRoleRaw": "Cybersecurity Specialist, tech vendor (501-1,000 employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 29, 2025",
+      "rating": 4.5,
+      "title": "Scanning methodology and privacy basis are opaque",
+      "body": "Give a little more specifics on how the scanning works and how you are able to detect those IPs, including more details on the privacy side about how the scanner operates and how it is sometimes allowed to do those scans.",
+      "reviewerRoleRaw": "Cybersecurity Specialist, tech vendor (501-1,000 employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 16, 2025",
+      "rating": 4.0,
+      "title": "Thin remediation guidance; weak GRC/vendor-mgmt integration",
+      "body": "SecurityScorecard could be improved with more detailed remediation guidance, better customization of scoring, and stronger integration with GRC and vendor management tools.",
+      "reviewerRoleRaw": "SOC analyst, BUSINESS IT",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 16, 2025",
+      "rating": 4.0,
+      "title": "Reporting and alert customization limited; UI could be more intuitive",
+      "body": "Better reporting and alert customization as well as a more intuitive user interface are needed.",
+      "reviewerRoleRaw": "SOC analyst, BUSINESS IT",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 8, 2025",
+      "rating": 4.0,
+      "title": "Findings lack technical mitigation detail for non-technical teams",
+      "body": "Details on the technical mitigation would help my non-technical teams understand the security issues better.",
+      "reviewerRoleRaw": "Application security engineer, media (51-200 employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 8, 2025",
+      "rating": 4.0,
+      "title": "Reports limited to predefined formats",
+      "body": "The ability to download customizable reports. While SecurityScorecard offers various kinds of reports now, they are limited to predefined formats.",
+      "reviewerRoleRaw": "Application security engineer, media (51-200 employees)",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 8, 2025",
+      "rating": 4.0,
+      "title": "Wants AI-explained rating rationale",
+      "body": "SecurityScorecard could enhance some of the integrations based on AI platforms, where I could receive suggestions from the AI tool regarding why SecurityScorecard rates specific issues.",
+      "reviewerRoleRaw": "Application security engineer, media (51-200 employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 12, 2025",
+      "rating": 3.5,
+      "title": "Data can be several days old; wants on-demand rescan",
+      "body": "The information may be several days old, so it is not always current. The ability to perform an automatic scan at any point in time to refresh information and provide the most current data would be helpful.",
+      "reviewerRoleRaw": "Owner, Taktik Technologies (51-200 employees, tech services)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 12, 2025",
+      "rating": 3.5,
+      "title": "Passive TPRM: no control over third-party remediation",
+      "body": "For managing third parties, there are still some challenges, mainly because some aspects are out of their control since you do not have control over another company's risk.",
+      "reviewerRoleRaw": "Owner, Taktik Technologies (51-200 employees, tech services)",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 12, 2025",
+      "rating": 3.5,
+      "title": "Setup is complex; needs implementation help",
+      "body": "SecurityScorecard can be complex during setup, and I would recommend that anyone implementing it get help setting it up because it is not as straightforward as people might think.",
+      "reviewerRoleRaw": "Owner, Taktik Technologies (51-200 employees, tech services)",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 10, 2024",
+      "rating": 3.5,
+      "title": "Wants active, not passive, third-party risk management",
+      "body": "There is a need for more active rather than passive third-party risk management features to truly mitigate risks.",
+      "reviewerRoleRaw": "Regional Director, tech services (51-200 employees)",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 10, 2024",
+      "rating": 3.5,
+      "title": "Wants richer dark-web and threat intelligence",
+      "body": "The product can be improved by incorporating more data points and intelligence around dark web information and threat data.",
+      "reviewerRoleRaw": "Regional Director, tech services (51-200 employees)",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 10, 2024",
+      "rating": 3.5,
+      "title": "Support response times and org for customer volume",
+      "body": "There are areas for improvement in response times and overall support. They need better organization to support their customer volume.",
+      "reviewerRoleRaw": "Regional Director, tech services (51-200 employees)",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 8, 2025",
+      "rating": 5.0,
+      "title": "Only monitors public-facing assets; wants internal monitoring",
+      "body": "SecurityScorecard could help customers internally by developing their tool or feature so that customer devices that are not only public-facing can be monitored.",
+      "reviewerRoleRaw": "Technical Lead Pre-Sales, M.TECH Solutions India",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Feb 23, 2024",
+      "rating": 2.5,
+      "title": "No questionnaire module; supplier questions answered manually",
+      "body": "They could improve the process with a questionnaire module for the product. At present, we have to answer multiple questions for the suppliers manually.",
+      "reviewerRoleRaw": "Co-Founder and CEO, Cloudway (reseller)",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Feb 5, 2024",
+      "rating": null,
+      "title": "Technical support response time too slow",
+      "body": "The technical team's response time is an area that needs improvement. Three days is way too much. It should also be available for Android or iOS for app scanning.",
+      "reviewerRoleRaw": "EVP Technology, InfoEdge India Ltd",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Oct 19, 2023",
+      "rating": null,
+      "title": "Wants compensating-control mitigation paths",
+      "body": "It would help to have the ability to mitigate vulnerabilities with alternative solutions rather than the single prescribed fix.",
+      "reviewerRoleRaw": "System Administrator, OnShift",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Jun 12, 2024",
+      "rating": 4.0,
+      "title": "Findings lack hints on what to look for; issues linger",
+      "body": "There could be more information in regards to solving problems like hints on what specifically to look for; sometimes they don't fix your issues quickly.",
+      "reviewerRoleRaw": "Administrator, Neuberger Gebaeudeautomation GmbH",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 21, 2021",
+      "rating": 4.0,
+      "title": "Pricing gap to paid tier is steep for small orgs",
+      "body": "The pricing gap to the paid version feels steep for small organizations.",
+      "reviewerRoleRaw": "Administrator, Neuberger Gebaeudeautomation GmbH",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Jul 12, 2024",
+      "rating": null,
+      "title": "Regional pricing/payment friction (Brazil)",
+      "body": "The pricing of the product needs improvement in Brazil; making a payment involves wire transfers and high taxes, making it more expensive.",
+      "reviewerRoleRaw": "Owner, SUNLIT TECHNOLOGIES",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 8, 2025",
+      "rating": 4.0,
+      "title": "Expected lower pricing for a SaaS-first buyer",
+      "body": "Since it does not require active deployment on our side being a SaaS-first company, I expected slightly lower pricing.",
+      "reviewerRoleRaw": "Application security engineer, media (51-200 employees)",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "g2",
+      "reviewDate": "2026",
+      "rating": 3.0,
+      "title": "No real-time scanning, weak support",
+      "body": "What do you dislike about SecurityScorecard? Not having any customer support, not doing constant scans, real-time scanning was not available.",
+      "reviewerRoleRaw": "Verified G2 reviewer",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "trustradius",
+      "reviewDate": "2024",
+      "rating": null,
+      "title": "Pricing could be reviewed for hard-hit industries",
+      "body": "Pricing could be reviewed for specific industries which were more impacted by the pandemic situation.",
+      "reviewerRoleRaw": "Verified TrustRadius reviewer (reseller)",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 16, 2025",
+      "rating": 4.0,
+      "title": "Wants more customizable scoring model",
+      "body": "Better customization of scoring would help — the model should be tunable to how our organization weighs issues.",
+      "reviewerRoleRaw": "SOC analyst, BUSINESS IT",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "trustradius",
+      "reviewDate": "2025",
+      "rating": 4.5,
+      "title": "Easy to find issues and clear false positives (positive)",
+      "body": "It was really easy to find issues, solve false positives and keep track of overall security ratings.",
+      "reviewerRoleRaw": "Information Security Governance & Compliance Manager",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "trustradius",
+      "reviewDate": "2024",
+      "rating": 4.5,
+      "title": "Atlas electronic questionnaire cuts vendor due-diligence time (positive)",
+      "body": "ROI numbers for using Atlas electronic questionnaire are amazing. When a customer does not need to worry about Excel traffic with its vendors asking for info, they feel a strong sense of relief; it reduces the time and effort spent on vendor due diligence.",
+      "reviewerRoleRaw": "Owner & Entrepreneur (reseller), SUNLIT TECHNOLOGIES",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Feb 23, 2024",
+      "rating": 2.5,
+      "title": "Enterprise-ready TPRM automation is the strongest feature (positive)",
+      "body": "One of its most effective features for risk identification is its enterprise-ready automation for third-party risk measurements.",
+      "reviewerRoleRaw": "Co-Founder and CEO, Cloudway (reseller)",
+      "personaGuess": "vrm"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Dec 21, 2021",
+      "rating": 4.0,
+      "title": "Automated approach covers all related IPs (positive)",
+      "body": "With its automated approach, nothing is missed on the IPs your organization is related to.",
+      "reviewerRoleRaw": "Administrator, Neuberger Gebaeudeautomation GmbH",
+      "personaGuess": "ciso"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Feb 5, 2024",
+      "rating": 4.5,
+      "title": "Fast, easy initial setup (positive)",
+      "body": "I rate the product's initial setup phase a nine on a scale of one to ten — it was quick to get value.",
+      "reviewerRoleRaw": "EVP Technology, InfoEdge India Ltd",
+      "personaGuess": "gtm_cs"
+    },
+    {
+      "source": "peerspot",
+      "reviewDate": "Oct 19, 2023",
+      "rating": 4.0,
+      "title": "Clear visibility into environment vulnerabilities (positive)",
+      "body": "The solution helps identify our environment's vulnerabilities and gives us a clear external view.",
+      "reviewerRoleRaw": "System Administrator, OnShift",
+      "personaGuess": "ciso"
+    }
+  ]
+}

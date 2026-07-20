@@ -1,7 +1,8 @@
 /**
  * Run lifecycle:
- *   npx tsx runner/run.ts create --trigger <ui|slash|routine> [--request <id>] [--personas ciso,vrm,gtm_cs]
- *     → prints RUN_ID=<uuid>
+ *   npx tsx runner/run.ts create --trigger <ui|slash|routine> [--id <uuid>] [--request <id>] [--personas ciso,vrm,gtm_cs]
+ *     → prints RUN_ID=<uuid>. --id adopts an existing on-disk run id idempotently
+ *       (used to republish a locally-built run into the deployed Neon DB).
  *   npx tsx runner/run.ts finish --run <id> [--status completed|failed] [--error "<msg>"]
  */
 import { eq } from "drizzle-orm";
@@ -10,6 +11,7 @@ import { arg as argOf } from "./lib/args";
 import { getDb } from "../lib/db";
 import { personaEvaluations, runRequests, runs } from "../lib/db/schema";
 import { PERSONAS } from "../lib/schemas/findings";
+import { isUuid } from "../lib/validation";
 import { ensureRunTrace, flushLangfuse } from "./trace";
 
 loadEnv();
@@ -33,11 +35,29 @@ async function create(): Promise<void> {
   const invalid = personas.filter((p) => !(PERSONAS as readonly string[]).includes(p));
   if (invalid.length) throw new Error(`unknown personas: ${invalid.join(", ")}`);
 
+  // --id adopts an existing on-disk run into whatever DB DATABASE_URL points at,
+  // idempotently. This is how a run built locally (PGlite) is republished to the
+  // deployed Neon DB without re-running the browser: create --id <same-id>, then
+  // the usual publish.ts steps find their FK parent. Re-running never clobbers a
+  // completed row (onConflictDoNothing).
+  const explicitId = arg("--id");
+  if (explicitId && !isUuid(explicitId)) {
+    throw new Error(`--id must be a uuid: ${explicitId}`);
+  }
+
   const db = await getDb();
-  const [run] = await db
-    .insert(runs)
-    .values({ trigger, personas, status: "running" })
-    .returning();
+  let run: typeof runs.$inferSelect;
+  if (explicitId) {
+    await db
+      .insert(runs)
+      .values({ id: explicitId, trigger, personas, status: "running" })
+      .onConflictDoNothing({ target: runs.id });
+    const [adopted] = await db.select().from(runs).where(eq(runs.id, explicitId));
+    if (!adopted) throw new Error(`failed to adopt run ${explicitId}`);
+    run = adopted;
+  } else {
+    [run] = await db.insert(runs).values({ trigger, personas, status: "running" }).returning();
+  }
 
   await db.update(runs).set({ langfuseTraceId: run.id }).where(eq(runs.id, run.id));
   if (requestId) {

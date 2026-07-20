@@ -9,10 +9,13 @@ const nextConfig: NextConfig = {
     "/": ["./drizzle/**/*", "./config/**/*", "./personas/**/*"],
     "/personas": ["./personas/**/*"],
     "/personas/**": ["./personas/**/*"],
+    // /metrics reads data/feature-taxonomy.json + data/metrics-registry.json
+    // from disk at request time.
+    "/metrics": ["./data/**/*"],
     // Every serverless function may hit the DB (migration files for the PGlite
     // fallback + Neon auto-migrate) and the Linear routes read config/linear.json.
-    // Persona docs are also bundled so any route calling loadPersonas works.
-    "/**": ["./drizzle/**/*", "./config/**/*", "./personas/**/*"],
+    // Persona docs + data/ are also bundled so any route reading them works.
+    "/**": ["./drizzle/**/*", "./config/**/*", "./personas/**/*", "./data/**/*"],
   },
 };
 

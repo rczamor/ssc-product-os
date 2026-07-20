@@ -1,0 +1,216 @@
+{
+  "_note": "Human-editable source of truth (spec Phase 4.1). Generated from the persona corpora, the live platform-review run's journey/screenshot evidence (runs/8112a07d-.../<persona>/journey.json), and the gtm_cs persona doc's cited business facts. Riché edits this file directly going forward; the app never mutates it.",
+  "features": [
+    {
+      "key": "score-factors-grade",
+      "name": "Scorecard letter grade + factor breakdown",
+      "surface": "#/scorecard/:domain/company-overview",
+      "description": "The A-F letter grade and its underlying factor scores for a company's own or a vendor's rating.",
+      "rhythm_class": "daily-ops",
+      "value_role": "table-stakes",
+      "health_state": "strategic-growing",
+      "rationale": "The single most-cited value across all three personas — instantly board-legible for CISOs, the anchor for VRM triage, and the GTM demo moment. Checked daily by power users.",
+      "evidence": "runs/8112a07d-.../ciso/my-scorecard.jpg; deliverable like 'Board-legible A-F grading'"
+    },
+    {
+      "key": "score-issues-findings",
+      "name": "Score issues / findings list",
+      "surface": "#/scorecard/:domain/issues",
+      "description": "The list of externally-visible findings driving a scorecard, filterable by severity/category.",
+      "rhythm_class": "daily-ops",
+      "value_role": "table-stakes",
+      "health_state": "valuable-but-hidden",
+      "rationale": "Necessary and used daily, but the deliverable's #1 dislike ('factor drill-downs lack prioritization') shows the value is buried — users can't tell which 3 issues to fix first without manual triage.",
+      "evidence": "runs/8112a07d-.../ciso/score-issues.jpg; deliverable dislike 'factor-drilldown-so-what'"
+    },
+    {
+      "key": "attribution-disputes",
+      "name": "Attribution dispute / correction flow",
+      "surface": "#/scorecard/:domain/issues (dispute action)",
+      "description": "The path to dispute a misattributed finding (wrong IP/asset) and request re-verification.",
+      "rhythm_class": "event-driven",
+      "value_role": "retention-driver",
+      "health_state": "critical-to-few",
+      "rationale": "Low day-to-day reach (only touched when a dispute arises) but disproportionately high-stakes — the CISO and VRM persona docs both name unresolved disputes and SLA misses as top churn triggers.",
+      "evidence": "personas/ciso/persona.md Red Flags: 'A score drop caused by the platform's own misattribution'; personas/vrm/persona.md Top Pain Points"
+    },
+    {
+      "key": "risk-quantification",
+      "name": "Financial impact / risk quantification",
+      "surface": "#/scorecard/:domain/financial-impact/risk-assessment",
+      "description": "Dollars-at-risk framing of security posture for board and cyber-insurance conversations.",
+      "rhythm_class": "monthly-reporting",
+      "value_role": "expansion-driver",
+      "health_state": "shipped-not-adopted",
+      "rationale": "A real differentiator (board-credible dollar framing is rare in the category) but the run's own journey note flags uncertainty over whether it reads as 'board-credible ... or a black box' — adoption lags the capability.",
+      "evidence": "runs/8112a07d-.../ciso/risk-quantification.jpg"
+    },
+    {
+      "key": "report-center",
+      "name": "Report Center / board & QBR exports",
+      "surface": "#/report-center",
+      "description": "Exportable, brandable reports for board packets and customer QBRs.",
+      "rhythm_class": "monthly-reporting",
+      "value_role": "retention-driver",
+      "health_state": "strategic-growing",
+      "rationale": "Independently visited by both the CISO and GTM/CS personas in the same run — it serves the board-reporting job AND the CSM's QBR-export job, a rare dual-persona anchor feature.",
+      "evidence": "runs/8112a07d-.../ciso/report-center.jpg; runs/8112a07d-.../gtm_cs/report-center.jpg"
+    },
+    {
+      "key": "alerts-rules",
+      "name": "Alerting / rule builder",
+      "surface": "#/rules-alerts",
+      "description": "Configurable rules controlling which score/finding changes trigger a notification.",
+      "rhythm_class": "daily-ops",
+      "value_role": "table-stakes",
+      "health_state": "valuable-but-hidden",
+      "rationale": "Essential for noise control, but the journey's own framing question — 'would this create alert fatigue' — plus the VRM pain point 'alert noise: score-change notifications without materiality context' shows real usage lags the configuration surface's potential.",
+      "evidence": "runs/8112a07d-.../ciso/rules-alerts.jpg; personas/vrm/persona.md Top Pain Points",
+      "previousHealthState": "shipped-not-adopted"
+    },
+    {
+      "key": "attack-surface-intelligence",
+      "name": "Attack Surface Intelligence",
+      "surface": "#/scorecard/:domain/attack-surface",
+      "description": "Asset discovery and attribution feeding the outside-in rating.",
+      "rhythm_class": "weekly-review",
+      "value_role": "retention-driver",
+      "health_state": "critical-to-few",
+      "rationale": "The accuracy of this surface is existential for the small set of power users (security/VRM analysts) who audit attribution weekly, even though most users never look at it directly — its failures are what surface as disputes elsewhere.",
+      "evidence": "runs/8112a07d-.../ciso/attack-surface.jpg"
+    },
+    {
+      "key": "vendor-portfolio",
+      "name": "Vendor portfolio management",
+      "surface": "#/vrm/portfolios, #/vrm/my-vendors",
+      "description": "Tiering, saved views, and bulk triage across the full third-party vendor book.",
+      "rhythm_class": "weekly-review",
+      "value_role": "table-stakes",
+      "health_state": "strategic-growing",
+      "rationale": "The VRM persona's core weekly loop and its top-rated like ('Portfolio view supports fast vendor triage') — this is the feature the VRM's whole day-to-day depends on.",
+      "evidence": "runs/8112a07d-.../vrm/portfolios.jpg; runs/8112a07d-.../vrm/my-vendors.jpg; deliverable like 'Portfolio-scale vendor triage'"
+    },
+    {
+      "key": "automatic-vendor-detection",
+      "name": "Automatic Vendor Detection (4th-party)",
+      "surface": "#/vrm/vendor-detection",
+      "description": "Automated discovery of a vendor's own vendors (concentration/4th-party risk).",
+      "rhythm_class": "monthly-reporting",
+      "value_role": "expansion-driver",
+      "health_state": "shipped-not-adopted",
+      "rationale": "The journey's own framing — 'signal or noise?' — plus the fact this ships as an upsell module means most portfolios haven't turned it on yet, even though 4th-party blindness is a named VRM pain point it directly answers.",
+      "evidence": "runs/8112a07d-.../vrm/vendor-detection.jpg; personas/vrm/persona.md Top Pain Points"
+    },
+    {
+      "key": "questionnaires-atlas",
+      "name": "Questionnaires (Atlas)",
+      "surface": "#/vrm/questionnaires",
+      "description": "Send/track vendor due-diligence questionnaires (SIG Lite/Core, custom).",
+      "rhythm_class": "event-driven",
+      "value_role": "table-stakes",
+      "health_state": "valuable-but-hidden",
+      "rationale": "Necessary for diligence but the deliverable's #2 dislike ('Questionnaires feel siloed from ratings') means the value is hidden behind a manual-correlation workflow, not surfaced automatically.",
+      "evidence": "runs/8112a07d-.../vrm/questionnaires.jpg; deliverable dislike 'questionnaire-rating-silo'"
+    },
+    {
+      "key": "action-plans-remediation",
+      "name": "Remediation action plans",
+      "surface": "#/vrm/action-plans",
+      "description": "SLA-tracked remediation collaboration with vendors, with closure evidence.",
+      "rhythm_class": "weekly-review",
+      "value_role": "retention-driver",
+      "health_state": "critical-to-few",
+      "rationale": "Heavily used by the subset of VRM power users actively chasing overdue-critical vendors, but invisible to the majority of the portfolio at any given time — a classic power-user-critical, low-reach surface.",
+      "evidence": "runs/8112a07d-.../vrm/action-plans.jpg"
+    },
+    {
+      "key": "requests-log",
+      "name": "Requests log / audit trail",
+      "surface": "#/vrm/requests-log",
+      "description": "Chronological log of vendor requests and responses for exam evidence.",
+      "rhythm_class": "quarterly-assessment",
+      "value_role": "table-stakes",
+      "health_state": "legacy-kill",
+      "rationale": "Opened almost exclusively during an exam or audit prep, then untouched for months — a compliance checkbox with structurally low reach that's a natural CCB kill-or-fold-in candidate.",
+      "evidence": "runs/8112a07d-.../vrm/requests-log.jpg",
+      "previousHealthState": "valuable-but-hidden"
+    },
+    {
+      "key": "prospect-scorecard-demo",
+      "name": "Prospect scorecard (sales demo)",
+      "surface": "#/scorecard/:prospect-domain",
+      "description": "Live lookup of any company's scorecard, used as the signature sales-demo moment.",
+      "rhythm_class": "event-driven",
+      "value_role": "expansion-driver",
+      "health_state": "strategic-growing",
+      "rationale": "The deliverable's top GTM like — 'Instant prospect scorecards' — a zero-setup value demo that shortens every sales cycle it's used in.",
+      "evidence": "runs/8112a07d-.../gtm_cs/prospect-scorecard.jpg; deliverable like 'Instant prospect scorecards'"
+    },
+    {
+      "key": "vendor-engagement",
+      "name": "Vendor engagement / invite flows",
+      "surface": "#/vendor-engagement",
+      "description": "What a customer's own vendors see: invites, collaboration requests, response tracking.",
+      "rhythm_class": "weekly-review",
+      "value_role": "retention-driver",
+      "health_state": "valuable-but-hidden",
+      "rationale": "Drives the collaboration loop VRM depends on, but the persona doc's own red flag — vendors 'reporting the invite/collaboration flow is confusing or feels like a sales funnel' — shows the value is undercut by friction on the receiving end.",
+      "evidence": "runs/8112a07d-.../gtm_cs/home-vendor-engagement.jpg; personas/vrm/persona.md Red Flags"
+    },
+    {
+      "key": "marketplace-integrations",
+      "name": "Marketplace / integrations",
+      "surface": "#/marketplace",
+      "description": "Pre-built integrations (Jira, SIEM/GRC, ticketing) into a customer's existing stack.",
+      "rhythm_class": "monthly-reporting",
+      "value_role": "expansion-driver",
+      "health_state": "shipped-not-adopted",
+      "rationale": "The journey's framing question — 'how easily does this land inside a customer's existing stack' — plus both CISO and VRM persona docs naming 'APIs into my SIEM/GRC' as a want-not-have shows integration depth is still an adoption gap, not a shipped strength.",
+      "evidence": "runs/8112a07d-.../gtm_cs/marketplace.jpg; personas/ciso/persona.md Evaluation Lens"
+    },
+    {
+      "key": "verified-assessments",
+      "name": "Verified Assessments (Early Access)",
+      "surface": "#/verified-assessments",
+      "description": "A newly-introduced Early Access surface for pre-verified vendor assessments.",
+      "rhythm_class": "event-driven",
+      "value_role": "expansion-driver",
+      "health_state": "shipped-not-adopted",
+      "rationale": "Explicitly an Early Access surface as of this run — by definition too new to have meaningful adoption yet; the open question is discoverability and demo confidence, not fit.",
+      "evidence": "runs/8112a07d-.../gtm_cs/verified-assessments.jpg"
+    },
+    {
+      "key": "notification-center",
+      "name": "Notification center",
+      "surface": "#/notifications",
+      "description": "The in-app feed of score-change, dispute, and system notifications.",
+      "rhythm_class": "daily-ops",
+      "value_role": "table-stakes",
+      "health_state": "legacy-kill",
+      "rationale": "The journey's own framing — 'would a customer see value here weekly, or churn-inducing noise?' — combined with alert-fatigue complaints elsewhere suggests this surface has drifted from useful to ignored, a candidate to fold into a smarter alerting redesign rather than maintain as-is.",
+      "evidence": "runs/8112a07d-.../gtm_cs/notifications.jpg"
+    },
+    {
+      "key": "max-managed-services",
+      "name": "MAX managed services (SCDR workflows)",
+      "surface": "n/a — services-delivered, not a self-serve UI surface",
+      "description": "Managed remediation/response workflows delivered as a service on top of the platform.",
+      "rhythm_class": "monthly-reporting",
+      "value_role": "expansion-driver",
+      "health_state": "strategic-growing",
+      "rationale": "Named in the GTM/CS persona doc as the company's fastest-growing product line (370% YoY) — the clearest expansion-revenue growth engine in the portfolio, even though it's services-heavy rather than a pure self-serve feature.",
+      "evidence": "personas/gtm_cs/persona.md: 'SCDR, MAX managed services — the company's fastest-growing product at 370% YoY'"
+    },
+    {
+      "key": "ai-product-ops-workflows",
+      "name": "AI product-ops workflows (this app)",
+      "surface": "n/a — internal product-ops tooling, not a customer-facing SSC surface",
+      "description": "The persona-evaluation, reviewer/approval, ticket-drafting, and Friday-Update AI workflows built in this project.",
+      "rhythm_class": "weekly-review",
+      "value_role": "retention-driver",
+      "health_state": "strategic-growing",
+      "rationale": "Freshly built and in active weekly use this cycle (every phase's review gate + the matrix→Linear pipeline) — the AI Containment Rate metric tracks exactly this surface's trustworthiness as it scales.",
+      "evidence": "spec.md Phases 1-3; this repository's own commit history"
+    }
+  ]
+}

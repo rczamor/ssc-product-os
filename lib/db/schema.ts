@@ -233,3 +233,58 @@ export const approvals = pgTable("approvals", {
   approvedBy: text("approved_by").notNull(),
   approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * The drafted matrix→Linear tickets for a run (Phase 3). One draft per run
+ * (unique run_id). `draft` is the validated TicketDraft; `pushedIssueIds` records
+ * every Linear issue created so a re-push is a no-op (idempotent). `pushedAt` is
+ * null until an approved push succeeds.
+ */
+export const ticketDrafts = pgTable("ticket_drafts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  runId: uuid("run_id")
+    .notNull()
+    .unique()
+    .references(() => runs.id, { onDelete: "cascade" }),
+  /** Validated TicketDraft (epics + CCB decisions). */
+  draft: jsonb("draft").notNull(),
+  /** [{ key, issueId, identifier, url, subIssueIds }] once pushed. */
+  pushedIssueIds: jsonb("pushed_issue_ids").$type<unknown[]>().notNull().default([]),
+  pushedAt: timestamp("pushed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Server-side cache of the SSC-ProductOS project's Linear issues (Phase 3), so
+ * the Work screen renders without a live API round-trip on every request. Keyed
+ * by the Linear issue id; upserted on each sync.
+ */
+export const linearCache = pgTable(
+  "linear_cache",
+  {
+    /** Linear issue id (uuid string). */
+    id: text("id").primaryKey(),
+    identifier: text("identifier").notNull(),
+    title: text("title").notNull(),
+    description: text("description"),
+    /** Workflow state name (Todo/In Progress/In Review/Done/…). */
+    stateName: text("state_name").notNull(),
+    stateType: text("state_type").notNull(),
+    priority: integer("priority").notNull().default(0),
+    labels: jsonb("labels").$type<string[]>().notNull().default([]),
+    parentId: text("parent_id"),
+    url: text("url"),
+    dueDate: text("due_date"),
+    createdAt: timestamp("created_at", { withTimezone: true }),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("linear_cache_parent_idx").on(t.parentId)],
+);
+
+/** Single-row sync metadata for the Work screen's "last synced" stamp. */
+export const linearSyncState = pgTable("linear_sync_state", {
+  id: text("id").primaryKey().default("project"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  issueCount: integer("issue_count").notNull().default(0),
+  note: text("note"),
+});

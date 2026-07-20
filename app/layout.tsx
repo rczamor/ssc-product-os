@@ -20,7 +20,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="flex gap-5 text-sm text-slate-600">
               <Link className="hover:text-slate-900" href="/">
-                Runs
+                Planning
+              </Link>
+              <Link className="hover:text-slate-900" href="/work">
+                Work
               </Link>
               <Link className="hover:text-slate-900" href="/personas">
                 Personas

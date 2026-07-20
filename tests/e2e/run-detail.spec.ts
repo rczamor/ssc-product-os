@@ -43,4 +43,8 @@ test("reviewer can vote on a finding and approve the matrix", async ({ page }) =
   await page.getByRole("button", { name: "Approve matrix" }).click();
   await page.getByRole("button", { name: "Confirm approval" }).click();
   await expect(page.getByText("Matrix approved")).toBeVisible();
+
+  // The Linear push control only appears once approved, and the draft materializes.
+  await expect(page.getByText("Linear push", { exact: true })).toBeVisible();
+  await expect(page.getByText(/tickets drafted from the matrix/)).toBeVisible();
 });

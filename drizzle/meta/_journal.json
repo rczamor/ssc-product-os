@@ -50,6 +50,13 @@
       "when": 1784563089482,
       "tag": "0006_design_v2_finding_verdict_retries",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784580552401,
+      "tag": "0007_next_giant_girl",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@/lib/db";
-import { deliverables, ticketDrafts } from "@/lib/db/schema";
-import { draftTicketsFromDeliverable } from "@/lib/tickets";
+import { deliverables, findings, ticketDrafts } from "@/lib/db/schema";
+import { draftTicketsFromDeliverable, draftTicketsFromFindings } from "@/lib/tickets";
 import { TicketDraftSchema, type TicketDraft } from "@/lib/schemas/ticket";
-import type { KfdRow } from "@/lib/schemas/findings";
+import type { KfdRow, KfdVerdict } from "@/lib/schemas/findings";
 
 /**
  * Ensure a validated ticket draft exists for a run, generating it deterministically
@@ -26,15 +26,54 @@ export async function ensureTicketDraft(db: Db, runId: string): Promise<TicketDr
     .select()
     .from(deliverables)
     .where(eq(deliverables.runId, runId));
-  if (!deliverable) return null;
+  const kfd = (deliverable?.kfdTable ?? []) as KfdRow[];
 
-  const kfd = deliverable.kfdTable as KfdRow[];
-  if (!Array.isArray(kfd) || kfd.length === 0) return null;
+  // Verdict resolver for a finding whose own verdict column is null (older runs):
+  // inherit the KFD row that cites it, else likes→double_down / dislikes→fix.
+  const verdictByKey = new Map<string, string>();
+  for (const row of Array.isArray(kfd) ? kfd : []) {
+    for (const raw of row.sourceFindingKeys ?? []) {
+      verdictByKey.set(raw, row.verdict);
+      const bare = raw.includes("/") ? raw.split("/").pop()! : raw;
+      if (!verdictByKey.has(bare)) verdictByKey.set(bare, row.verdict);
+    }
+  }
 
-  const draft = draftTicketsFromDeliverable(kfd, {
-    runId,
-    generatedAt: new Date().toISOString(),
-  });
+  // Human-curated subset: when any finding is flagged "Add to ticket", convert
+  // only those (this is also the only path by which human-authored findings —
+  // which never enter the KFD table — become tickets). Otherwise fall back to
+  // the full deliverable matrix (the original all-rows behavior).
+  const selectedRows = await db
+    .select()
+    .from(findings)
+    .where(and(eq(findings.runId, runId), eq(findings.selectedForTicket, true)))
+    .orderBy(asc(findings.createdAt));
+
+  let draft: TicketDraft;
+  if (selectedRows.length > 0) {
+    draft = draftTicketsFromFindings(
+      selectedRows.map((f) => ({
+        key: f.key,
+        persona: f.persona,
+        kind: f.kind as "like" | "dislike",
+        title: f.title,
+        customerPain: f.customerPain,
+        rootCause: f.rootCause,
+        effort: f.effort,
+        firstAction: f.firstAction,
+        detail: f.detail,
+        verdict: (f.verdict ??
+          verdictByKey.get(`${f.persona}/${f.key}`) ??
+          verdictByKey.get(f.key) ??
+          (f.kind === "like" ? "double_down" : "fix")) as KfdVerdict,
+      })),
+      { runId, generatedAt: new Date().toISOString() },
+    );
+  } else {
+    if (!Array.isArray(kfd) || kfd.length === 0) return null;
+    draft = draftTicketsFromDeliverable(kfd, { runId, generatedAt: new Date().toISOString() });
+  }
+
   const parsed = TicketDraftSchema.safeParse(draft);
   if (!parsed.success) return null;
 

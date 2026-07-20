@@ -45,6 +45,7 @@ export interface FindingRow {
   verdictBg: string;
   verdictBd: string;
   humanVote: "up" | "down" | null;
+  selectedForTicket: boolean;
 }
 
 /**
@@ -72,6 +73,8 @@ export default function PlanBoard({
   approvedBy,
   approvedAt,
   initialPersona,
+  pushed,
+  pushedCount,
 }: {
   runId: string;
   personaChips: PersonaChip[];
@@ -82,10 +85,33 @@ export default function PlanBoard({
   approvedBy: string | null;
   approvedAt: string | null;
   initialPersona: PersonaSlug | null;
+  pushed: boolean;
+  pushedCount: number;
 }) {
   const [active, setActive] = useState<PersonaSlug | null>(initialPersona);
   const [origin, setOrigin] = useState<OriginFilter>("all");
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
+  // Which themes the human has flagged to convert to Linear tickets. Seeded from
+  // the persisted flag; toggling is optimistic (reverts on a failed write).
+  const [selected, setSelected] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(findings.map((f) => [f.id, f.selectedForTicket])),
+  );
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
+  async function toggleSelect(f: FindingRow) {
+    const next = !selected[f.id];
+    setSelected((s) => ({ ...s, [f.id]: next }));
+    try {
+      const res = await fetch(`/api/runs/${runId}/findings/select`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ findingKey: f.key, persona: f.persona, selected: next }),
+      });
+      if (!res.ok) throw new Error("select failed");
+    } catch {
+      setSelected((s) => ({ ...s, [f.id]: !next })); // revert
+    }
+  }
 
   function setFilter(next: PersonaSlug | null) {
     setActive(next);
@@ -213,6 +239,21 @@ export default function PlanBoard({
               persona={f.persona}
               initialVerdict={f.humanVote}
             />
+
+            <button
+              type="button"
+              onClick={() => toggleSelect(f)}
+              aria-pressed={Boolean(selected[f.id])}
+              title="Include this theme when the approved matrix is pushed to Linear"
+              className="mt-[2px] flex items-center justify-center gap-[5px] rounded-[6px] border px-2 py-[5px] text-[10.5px] font-semibold"
+              style={
+                selected[f.id]
+                  ? { background: "var(--accent-bg)", color: "var(--accent)", borderColor: "var(--accent-bd)" }
+                  : { background: "#fff", color: "#6b6152", borderColor: "#e5e0d6" }
+              }
+            >
+              {selected[f.id] ? "✓ In tickets" : "+ Add to ticket"}
+            </button>
           </div>
         </div>
       </div>
@@ -365,6 +406,9 @@ export default function PlanBoard({
           approved={approved}
           approvedBy={approvedBy}
           approvedAt={approvedAt}
+          selectedCount={selectedCount}
+          pushed={pushed}
+          pushedCount={pushedCount}
         />
       </section>
     </>

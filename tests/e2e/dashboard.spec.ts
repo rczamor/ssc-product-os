@@ -31,6 +31,19 @@ test("Plan screen filters the matrix by Agent / Human source", async ({ page }) 
   await expect(page.getByText("No likes for this filter yet.")).toBeVisible();
 });
 
+test("Plan screen flags a theme for ticket conversion", async ({ page }) => {
+  await login(page);
+
+  // Each theme has an "Add to ticket" toggle; flagging one flips it to selected.
+  const addBtn = page.getByRole("button", { name: "+ Add to ticket" }).first();
+  await expect(addBtn).toBeVisible();
+  await addBtn.click();
+  await expect(page.getByRole("button", { name: "✓ In tickets" }).first()).toBeVisible();
+
+  // The approval footer reflects that conversion is now scoped to the selection.
+  await expect(page.getByText(/flagged .Add to ticket. — approval creates/)).toBeVisible();
+});
+
 test("Plan screen shows the compact feedback-sources chip row and emerging themes", async ({
   page,
 }) => {

@@ -104,6 +104,11 @@ export const findings = pgTable(
     verdict: text("verdict"),
     /** agent | human — who authored this finding (agent runs vs. reviewer adds). */
     origin: text("origin").notNull().default("agent"),
+    /** Human-curated "convert this theme to a Linear ticket" flag. When ANY
+     *  finding in a run is selected, the matrix→Linear draft converts only the
+     *  selected ones (incl. human findings); when none are, it falls back to the
+     *  full deliverable KFD table (the original all-rows behavior). */
+    selectedForTicket: boolean("selected_for_ticket").notNull().default(false),
     screenshotIds: jsonb("screenshot_ids").$type<string[]>().notNull().default([]),
     /** Full finding object as validated. */
     raw: jsonb("raw").notNull(),

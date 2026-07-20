@@ -1,4 +1,4 @@
-import { getIngestionSummary, getPersonaFindingCounts, getRunDetail, listRunsWithCounts } from "@/lib/db/queries";
+import { getIngestionSummary, getPersonaFindingCounts, getPushSummary, getRunDetail, listRunsWithCounts } from "@/lib/db/queries";
 import { clusterThemes } from "@/lib/feedback-themes";
 import { computeAccuracy } from "@/lib/reviews";
 import { PERSONAS, ROOT_CAUSE_LABELS, type PersonaSlug, type RootCause } from "@/lib/schemas/findings";
@@ -62,9 +62,13 @@ export default async function PlanPage({
   const [runs, ingestion] = await Promise.all([listRunsWithCounts(1), getIngestionSummary()]);
   const latest = runs[0] ?? null;
 
-  const [detail, personaCounts] = latest
-    ? await Promise.all([getRunDetail(latest.id), getPersonaFindingCounts(latest.id)])
-    : [null, {} as Record<string, number>];
+  const [detail, personaCounts, pushSummary] = latest
+    ? await Promise.all([
+        getRunDetail(latest.id),
+        getPersonaFindingCounts(latest.id),
+        getPushSummary(latest.id),
+      ])
+    : [null, {} as Record<string, number>, { pushed: false, count: 0 }];
 
   // Feedback sources chip row.
   const sourceChips: FeedbackSourceChip[] = ingestion.sources.map((s) => ({
@@ -167,6 +171,7 @@ export default async function PlanPage({
         verdictBg: vm.bg,
         verdictBd: vm.bd,
         humanVote: humanReviews.get(`${f.persona}:${f.key}`) ?? null,
+        selectedForTicket: Boolean(f.selectedForTicket),
       };
     });
   }
@@ -218,6 +223,8 @@ export default async function PlanPage({
           approvedBy={approvedBy}
           approvedAt={approvedAt}
           initialPersona={initialPersona}
+          pushed={pushSummary.pushed}
+          pushedCount={pushSummary.count}
         />
       ) : (
         <section className="mb-[18px] rounded-xl border border-line bg-card px-5 py-8 text-center text-sm text-ink-4 shadow-card">

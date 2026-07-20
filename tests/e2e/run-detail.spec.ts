@@ -48,8 +48,10 @@ test("reviewer can vote on a finding and approve the matrix on the Plan screen",
   await firstAgree.click();
   await expect(firstAgree).toHaveAttribute("aria-pressed", "true");
 
-  // Approval is now a single-click "Approve matrix →" (no confirm sub-step).
-  const approve = page.getByRole("button", { name: /Approve matrix/ });
+  // Approval is a single click that also creates the tickets ("Approve & create
+  // tickets →"). With no LINEAR_API_KEY in e2e the push degrades to a message, but
+  // the run still transitions to approved.
+  const approve = page.getByRole("button", { name: /Approve & create tickets/ });
   if (await approve.isVisible().catch(() => false)) {
     await approve.click();
   }

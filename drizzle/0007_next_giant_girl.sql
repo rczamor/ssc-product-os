@@ -1,0 +1,1 @@
+ALTER TABLE "findings" ADD COLUMN "selected_for_ticket" boolean DEFAULT false NOT NULL;

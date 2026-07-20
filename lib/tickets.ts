@@ -1,5 +1,5 @@
 import { TICKET_PRIORITY, type Ticket, type TicketDraft } from "@/lib/schemas/ticket";
-import type { KfdRow, PersonaSlug } from "@/lib/schemas/findings";
+import type { Effort, KfdRow, KfdVerdict, PersonaSlug, RootCause } from "@/lib/schemas/findings";
 import { clip } from "@/lib/validation";
 
 /** Lowercase slug from arbitrary text, bounded, with a fallback. */
@@ -124,4 +124,46 @@ export function draftTicketsFromDeliverable(
   });
 
   return { runId: opts.runId, generatedAt: opts.generatedAt, tickets };
+}
+
+/** A matrix finding the human flagged to convert to a ticket, with its verdict
+ *  already resolved (dislikes carry kill/fix/double_down; likes → double_down). */
+export interface FindingForTicket {
+  key: string;
+  persona: string;
+  kind: "like" | "dislike";
+  title: string;
+  customerPain: string | null;
+  rootCause: string | null;
+  effort: string | null;
+  firstAction: string | null;
+  detail: string;
+  verdict: KfdVerdict;
+}
+
+/**
+ * Draft tickets from a HUMAN-CURATED subset of matrix findings (the "Add to
+ * ticket" selection), rather than the whole deliverable. Each finding is mapped
+ * into a KfdRow and run through the same deterministic transform as
+ * draftTicketsFromDeliverable, so the ticket shape is identical — this just lets
+ * the human pick which themes convert AND lets human-authored findings (which
+ * never enter the synthesized KFD table) become tickets. Likes carry no
+ * customer-pain/root-cause/effort/first-action, so a "double down on what works"
+ * selection falls back to sensible defaults.
+ */
+export function draftTicketsFromFindings(
+  findings: FindingForTicket[],
+  opts: { runId?: string; generatedAt?: string } = {},
+): TicketDraft {
+  const rows: KfdRow[] = findings.map((f) => ({
+    item: f.title,
+    verdict: f.verdict,
+    customerPain: f.customerPain ?? f.detail,
+    personas: [f.persona as PersonaSlug],
+    rootCause: (f.rootCause ?? "strategy") as RootCause,
+    effort: (f.effort ?? "M") as Effort,
+    firstAction: f.firstAction ?? "Protect and extend this capability in the roadmap.",
+    sourceFindingKeys: [`${f.persona}/${f.key}`],
+  }));
+  return draftTicketsFromDeliverable(rows, opts);
 }

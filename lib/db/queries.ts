@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./index";
 import { ensureMetricsSeeded } from "./ensure-metrics";
+import { getTicketDraft } from "./tickets";
 import {
   approvals,
   deliverables,
@@ -239,6 +240,16 @@ export async function isRunApproved(runId: string): Promise<boolean> {
     .where(eq(approvals.runId, runId))
     .limit(1);
   return rows.length > 0;
+}
+
+/** Whether the run's tickets have been pushed to Linear, and how many. Drives the
+ *  approval footer's "N tickets created" vs "create tickets" state. */
+export async function getPushSummary(runId: string): Promise<{ pushed: boolean; count: number }> {
+  if (!isUuid(runId)) return { pushed: false, count: 0 };
+  const db = await getDb();
+  const draft = await getTicketDraft(db, runId);
+  const ids = draft?.pushedIssueIds;
+  return { pushed: Boolean(draft?.pushedAt), count: Array.isArray(ids) ? ids.length : 0 };
 }
 
 /** All generated metric observations for the Metrics tab (Phase 4). */

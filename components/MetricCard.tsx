@@ -87,7 +87,12 @@ export default function MetricCard({ card }: { card: MetricCardData }) {
                     : formatValue(currentValue, metric.unit)}
               </span>
             </div>
-            <div className="mt-0.5 text-[10.5px] text-ink-6">{metric.definition}</div>
+            {/* Clamp the on-card definition to a few lines so one metric with a
+                long definition (e.g. Engagement) can't tower over its row-mates;
+                the full text is shown in the expand panel below. */}
+            <div className="mt-0.5 line-clamp-3 text-[10.5px] leading-[1.4] text-ink-6">
+              {metric.definition}
+            </div>
           </div>
           {series.length >= 2 && (
             <Sparkline values={series} width={116} height={28} strokeWidth={1.5} opacity={0.9} color={sparkColor} />

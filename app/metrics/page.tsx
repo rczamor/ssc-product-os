@@ -99,11 +99,15 @@ export default async function MetricsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-[11px]">
+      {/* items-start: cards size to their own content instead of stretching to
+          the tallest card in the row (which left big empty gaps), and expanding
+          one card no longer stretches its row-mates. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] items-start gap-[11px]">
         {cards.map((c) => (
           <MetricCard key={c.metric.id} card={c} />
         ))}
       </div>
+
 
       <HealthBoard board={healthBoard} />
     </div>

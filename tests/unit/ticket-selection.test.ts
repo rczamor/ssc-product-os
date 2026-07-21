@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { deliverables, findings, runs } from "@/lib/db/schema";
-import { ensureTicketDraft } from "@/lib/db/tickets";
+import { archiveConvertedFindings, ensureTicketDraft } from "@/lib/db/tickets";
 import { draftTicketsFromFindings } from "@/lib/tickets";
 
 const PAIN = "Pain that is long enough to satisfy the schema minimum length.";
@@ -116,5 +116,39 @@ describe("ensureTicketDraft honors the Add-to-ticket selection", () => {
     const draft = await ensureTicketDraft(db, runId);
     expect(draft?.tickets).toHaveLength(1);
     expect(draft?.tickets[0].title).toContain("Human fix C");
+  });
+});
+
+describe("archiveConvertedFindings archives the pushed draft, not the live flags", () => {
+  it("archives the draft's source findings as 'converted' and ignores flags toggled after the draft froze", async () => {
+    const db = await getDb();
+    const [run] = await db
+      .insert(runs)
+      .values({ status: "completed", trigger: "slash", personas: ["ciso"] })
+      .returning();
+    await db.insert(findings).values([
+      { runId: run.id, persona: "ciso", key: "a", kind: "dislike", title: "Theme A", detail: "d", customerPain: PAIN, rootCause: "ux", effort: "M", firstAction: "x", verdict: "fix", origin: "agent", selectedForTicket: true, raw: {} },
+      { runId: run.id, persona: "ciso", key: "b", kind: "dislike", title: "Theme B", detail: "d", customerPain: PAIN, rootCause: "ux", effort: "M", firstAction: "x", verdict: "fix", origin: "agent", raw: {} },
+    ]);
+    // The draft is frozen from theme A only (the flag state at draft time).
+    const draft = draftTicketsFromFindings(
+      [{ key: "a", persona: "ciso", kind: "dislike", title: "Theme A", customerPain: PAIN, rootCause: "ux", effort: "M", firstAction: "x", detail: "d", verdict: "fix" }],
+      { runId: run.id },
+    );
+    // Flag theme B AFTER the draft froze — a flag-based archive would wrongly
+    // sweep it; a draft-keyed archive must ignore it (B has no pushed ticket).
+    await db
+      .update(findings)
+      .set({ selectedForTicket: true })
+      .where(and(eq(findings.runId, run.id), eq(findings.key, "b")));
+
+    await archiveConvertedFindings(db, run.id, draft);
+
+    const rows = await db.select().from(findings).where(eq(findings.runId, run.id));
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
+    expect(byKey.a.archived).toBe(true);
+    expect(byKey.a.archivedReason).toBe("converted");
+    // Flagged after the draft froze, absent from the draft → stays active.
+    expect(byKey.b.archived).toBe(false);
   });
 });

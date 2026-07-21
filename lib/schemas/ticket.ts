@@ -24,6 +24,12 @@ const TicketBase = z.object({
   priority: z.number().int().min(1).max(4),
   /** Phase label name for the timeline grouping (e.g. "phase:week-2"), or null. */
   phase: z.string().nullish(),
+  /** The matrix finding(s) this ticket was drafted from, as "persona/key" (or a
+   *  bare key for legacy KFD-derived drafts). Structurally records the ticket→
+   *  finding link so a push can archive exactly the findings it converted,
+   *  independent of the live "Add to ticket" flags (which can drift after the
+   *  draft is frozen). Bounded and defaulted so older drafts still validate. */
+  sourceFindingKeys: z.array(z.string().min(1)).max(20).default([]),
 });
 
 /** A Fix / Double-Down row → an epic with firstAction + 1-3 more sub-issues. */

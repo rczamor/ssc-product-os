@@ -82,6 +82,7 @@ export function draftTicketsFromDeliverable(
         labels: [...baseLabels, phase],
         priority: TICKET_PRIORITY.medium,
         phase,
+        sourceFindingKeys,
       };
     }
 
@@ -133,6 +134,7 @@ export function draftTicketsFromDeliverable(
       labels: [...baseLabels, phase],
       priority,
       phase,
+      sourceFindingKeys,
       subIssues: [
         {
           title: clip(firstAction, 200),

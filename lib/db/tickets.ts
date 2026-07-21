@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, or } from "drizzle-orm";
 import type { Db } from "@/lib/db";
 import { deliverables, findings, ticketDrafts } from "@/lib/db/schema";
 import { draftTicketsFromFindings } from "@/lib/tickets";
@@ -78,6 +78,42 @@ export async function ensureTicketDraft(db: Db, runId: string): Promise<TicketDr
     .values({ runId, draft: parsed.data })
     .onConflictDoNothing({ target: ticketDrafts.runId });
   return parsed.data;
+}
+
+/**
+ * Archive the findings that were converted into the given (already-pushed)
+ * draft's tickets, keyed off the draft's recorded `sourceFindingKeys` — NOT the
+ * live `selectedForTicket` flags. The draft is frozen at first materialization,
+ * so a theme flagged or unflagged AFTER that point would drift a flag-based
+ * archive (archiving a theme with no Linear ticket, or leaving a converted one
+ * active). Keying off the draft archives exactly what was pushed. Idempotent via
+ * the `archived = false` guard, so a re-push (or a retried best-effort archive)
+ * is a no-op.
+ */
+export async function archiveConvertedFindings(
+  db: Db,
+  runId: string,
+  draft: TicketDraft,
+): Promise<void> {
+  const keys = draft.tickets.flatMap((t) => t.sourceFindingKeys ?? []);
+  if (keys.length === 0) return;
+  // sourceFindingKeys are "persona/key" (findings-based drafts) or a bare "key"
+  // (legacy KFD-derived drafts). Match on the pair when the persona is present,
+  // else fall back to the bare key within the run.
+  const conds = keys.map((raw) => {
+    const slash = raw.indexOf("/");
+    if (slash > 0) {
+      return and(
+        eq(findings.persona, raw.slice(0, slash)),
+        eq(findings.key, raw.slice(slash + 1)),
+      );
+    }
+    return eq(findings.key, raw);
+  });
+  await db
+    .update(findings)
+    .set({ archived: true, archivedReason: "converted" })
+    .where(and(eq(findings.runId, runId), eq(findings.archived, false), or(...conds)));
 }
 
 /** Read the stored draft + push state for a run (null if none drafted or malformed). */

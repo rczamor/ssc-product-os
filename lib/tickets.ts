@@ -162,7 +162,10 @@ export function draftTicketsFromFindings(
     personas: [f.persona as PersonaSlug],
     rootCause: (f.rootCause ?? "strategy") as RootCause,
     effort: (f.effort ?? "M") as Effort,
-    firstAction: f.firstAction ?? "Protect and extend this capability in the roadmap.",
+    // Item-specific default so double-down/like findings (which carry no
+    // firstAction) don't all collapse to one identical sub-issue title — that
+    // made N epics look like duplicate tickets in Linear.
+    firstAction: f.firstAction ?? `Protect & extend "${f.title}" — guard against regressions and widen adoption.`,
     sourceFindingKeys: [`${f.persona}/${f.key}`],
   }));
   return draftTicketsFromDeliverable(rows, opts);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { isRunApproved } from "@/lib/db/queries";
-import { ensureTicketDraft, getTicketDraft } from "@/lib/db/tickets";
+import { archiveConvertedFindings, ensureTicketDraft, getTicketDraft } from "@/lib/db/tickets";
 import { isLinearConfigured } from "@/lib/linear";
 import { LinearNotConfiguredError, pushDraftToLinear } from "@/lib/linear-sync";
 import { isUuid } from "@/lib/validation";
@@ -69,9 +69,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const existing = await getTicketDraft(db, id);
   const alreadyPushed = Boolean(existing?.pushedAt);
+
+  let pushed;
   try {
-    const pushed = await pushDraftToLinear(db, id);
-    return NextResponse.json({ pushed, alreadyPushed, count: pushed.length }, { status: 200 });
+    pushed = await pushDraftToLinear(db, id);
   } catch (e) {
     if (e instanceof LinearNotConfiguredError) {
       return NextResponse.json({ error: e.message, draftReady: true }, { status: 503 });
@@ -80,4 +81,19 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     console.error(`Linear push failed for run ${id}:`, e);
     return NextResponse.json({ error: "push failed — see server logs" }, { status: 502 });
   }
+
+  // The push succeeded — the converted themes are now attached to Linear tickets,
+  // so archive them (reason 'converted') off the active Plan list. Keyed off the
+  // frozen draft that was actually pushed, not the live "Add to ticket" flags, so
+  // a flag toggled after the draft was materialized can't archive a theme with no
+  // ticket (or leave a converted one active). Best-effort: a DB failure here must
+  // never turn an already-completed Linear push into a 502 — the archive is
+  // idempotent and re-runs cleanly on the next push.
+  try {
+    await archiveConvertedFindings(db, id, draft);
+  } catch (e) {
+    console.error(`archive-after-push failed for run ${id}:`, e);
+  }
+
+  return NextResponse.json({ pushed, alreadyPushed, count: pushed.length }, { status: 200 });
 }

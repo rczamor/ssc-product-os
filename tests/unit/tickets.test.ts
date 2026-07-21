@@ -47,6 +47,28 @@ describe("draftTicketsFromDeliverable", () => {
     expect(kill.title.toLowerCase()).toContain("kill");
   });
 
+  it("embeds Requirements + Acceptance criteria into every ticket description", () => {
+    const draft = draftTicketsFromDeliverable([
+      row({ verdict: "fix", item: "Factor prioritization" }),
+      row({ verdict: "double_down", item: "Portfolio triage view", effort: "S" }),
+      row({ verdict: "kill", item: "Legacy PDF export", personas: ["gtm_cs"] }),
+    ]);
+    const [fix, dd, kill] = draft.tickets;
+    // Every ticket carries the two authored sections + a checklist of criteria.
+    for (const t of [fix, dd, kill]) {
+      expect(t.description).toContain("### Requirements");
+      expect(t.description).toContain("### Acceptance criteria");
+      expect(t.description).toContain("- [ ]");
+    }
+    // Fix speaks to resolving the root cause; double-down to extending what works.
+    expect(fix.description.toLowerCase()).toContain("root cause");
+    expect(dd.description.toLowerCase()).toContain("extend");
+    // Kill decision requires evidence + a recorded CCB decision.
+    expect(kill.description).toContain("CCB");
+    // Still within TicketSchema's bounds.
+    expect(TicketDraftSchema.safeParse(draft).success).toBe(true);
+  });
+
   it("produces unique keys even for duplicate item names", () => {
     const draft = draftTicketsFromDeliverable([
       row({ verdict: "fix", item: "Same title" }),

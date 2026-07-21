@@ -172,6 +172,8 @@ export default async function PlanPage({
         verdictBd: vm.bd,
         humanVote: humanReviews.get(`${f.persona}:${f.key}`) ?? null,
         selectedForTicket: Boolean(f.selectedForTicket),
+        archived: Boolean(f.archived),
+        archivedReason: f.archivedReason ?? null,
       };
     });
   }

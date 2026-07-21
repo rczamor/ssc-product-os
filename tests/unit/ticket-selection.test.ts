@@ -42,6 +42,17 @@ describe("draftTicketsFromFindings", () => {
     // The like still produces a well-formed epic with the standard 3 sub-issues.
     expect(epic.type === "epic" && epic.subIssues.length).toBe(3);
   });
+
+  it("gives each double-down an item-specific first sub-issue (no identical 'protect and extend' duplicates)", () => {
+    const draft = draftTicketsFromFindings([
+      { key: "a", persona: "ciso", kind: "like", title: "Alpha capability", customerPain: null, rootCause: null, effort: null, firstAction: null, detail: "A detail that is comfortably long enough here.", verdict: "double_down" },
+      { key: "b", persona: "vrm", kind: "like", title: "Beta capability", customerPain: null, rootCause: null, effort: null, firstAction: null, detail: "Another detail that is long enough to pass.", verdict: "double_down" },
+    ]);
+    const firstSubs = draft.tickets.map((t) => (t.type === "epic" ? t.subIssues[0].title : ""));
+    expect(firstSubs[0]).not.toBe(firstSubs[1]); // the bug was: both were identical
+    expect(firstSubs[0]).toContain("Alpha capability");
+    expect(firstSubs[1]).toContain("Beta capability");
+  });
 });
 
 describe("ensureTicketDraft honors the Add-to-ticket selection", () => {

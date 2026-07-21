@@ -1,4 +1,5 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
+import type { Issue } from "@linear/sdk";
 import type { Db } from "@/lib/db";
 import { linearCache, linearSyncState, ticketDrafts } from "@/lib/db/schema";
 import {
@@ -15,6 +16,101 @@ export class LinearNotConfiguredError extends Error {
     super("LINEAR_API_KEY is not set — Linear reads/writes are unavailable");
     this.name = "LinearNotConfiguredError";
   }
+}
+
+/**
+ * Map a Linear issue to a linear_cache row, resolving its state, labels, and
+ * parent. Shared by the full project sync (syncProjectToCache) and the
+ * per-issue webhook upsert (upsertIssueToCache) so the two can't drift.
+ */
+async function issueToCacheRow(issue: Issue) {
+  const [state, labelConn, parent] = await Promise.all([
+    issue.state,
+    issue.labels(),
+    issue.parent,
+  ]);
+  return {
+    id: issue.id,
+    identifier: issue.identifier,
+    title: issue.title,
+    description: issue.description ?? null,
+    stateName: state?.name ?? "Unknown",
+    stateType: state?.type ?? "unstarted",
+    priority: issue.priority ?? 0,
+    labels: labelConn.nodes.map((l) => l.name),
+    parentId: parent?.id ?? null,
+    url: issue.url ?? null,
+    dueDate: issue.dueDate ?? null,
+    createdAt: issue.createdAt ?? null,
+    completedAt: issue.completedAt ?? null,
+    syncedAt: new Date(),
+  };
+}
+type CacheRow = Awaited<ReturnType<typeof issueToCacheRow>>;
+
+/** The mutable columns of a cache row (everything but the primary-key id) — the
+ *  `set` for an upsert. */
+function cacheRowUpdate(row: CacheRow) {
+  return {
+    identifier: row.identifier,
+    title: row.title,
+    description: row.description,
+    stateName: row.stateName,
+    stateType: row.stateType,
+    priority: row.priority,
+    labels: row.labels,
+    parentId: row.parentId,
+    url: row.url,
+    dueDate: row.dueDate,
+    createdAt: row.createdAt,
+    completedAt: row.completedAt,
+    syncedAt: row.syncedAt,
+  };
+}
+
+/** Stamp the sync state's last-synced time + current cache size. Used by the
+ *  per-issue webhook path so the Work screen's "synced" stamp stays fresh
+ *  between full syncs. */
+async function bumpSyncState(db: Db): Promise<void> {
+  const [{ count } = { count: 0 }] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(linearCache);
+  const n = Number(count);
+  const now = new Date();
+  await db
+    .insert(linearSyncState)
+    .values({ id: "project", lastSyncedAt: now, issueCount: n })
+    .onConflictDoUpdate({ target: linearSyncState.id, set: { lastSyncedAt: now, issueCount: n } });
+}
+
+/**
+ * Upsert a single Linear issue into linear_cache from a webhook event — the
+ * inbound half of the two-way sync. Fetches the issue fresh (so state/label
+ * names and parent are complete) and IGNORES issues outside the SSC-ProductOS
+ * project. Returns true when a row was written, false when the issue is gone or
+ * belongs to another project. Throws LinearNotConfiguredError without a key.
+ */
+export async function upsertIssueToCache(db: Db, issueId: string): Promise<boolean> {
+  if (!isLinearConfigured()) throw new LinearNotConfiguredError();
+  const cfg = getLinearConfig();
+  const issue = await getLinearClient().issue(issueId);
+  if (!issue) return false;
+  const project = await issue.project;
+  if (project?.id !== cfg.project.id) return false; // not our project — ignore
+  const row = await issueToCacheRow(issue);
+  await db
+    .insert(linearCache)
+    .values(row)
+    .onConflictDoUpdate({ target: linearCache.id, set: cacheRowUpdate(row) });
+  await bumpSyncState(db);
+  return true;
+}
+
+/** Remove a single issue from linear_cache (a webhook `remove` event). Deleting
+ *  a row that isn't cached is a harmless no-op. */
+export async function removeIssueFromCache(db: Db, issueId: string): Promise<void> {
+  await db.delete(linearCache).where(eq(linearCache.id, issueId));
+  await bumpSyncState(db);
 }
 
 /**
@@ -45,34 +141,10 @@ export async function syncProjectToCache(db: Db): Promise<{ count: number; skipp
     if (!after) break;
   }
 
-  async function toCacheRow(issue: (typeof nodes)[number]) {
-    const [state, labelConn, parent] = await Promise.all([
-      issue.state,
-      issue.labels(),
-      issue.parent,
-    ]);
-    return {
-      id: issue.id,
-      identifier: issue.identifier,
-      title: issue.title,
-      description: issue.description ?? null,
-      stateName: state?.name ?? "Unknown",
-      stateType: state?.type ?? "unstarted",
-      priority: issue.priority ?? 0,
-      labels: labelConn.nodes.map((l) => l.name),
-      parentId: parent?.id ?? null,
-      url: issue.url ?? null,
-      dueDate: issue.dueDate ?? null,
-      createdAt: issue.createdAt ?? null,
-      completedAt: issue.completedAt ?? null,
-      syncedAt: new Date(),
-    };
-  }
-
-  const settled = await Promise.allSettled(nodes.map(toCacheRow));
+  const settled = await Promise.allSettled(nodes.map(issueToCacheRow));
   const rows = settled
     .filter((r) => r.status === "fulfilled")
-    .map((r) => (r as PromiseFulfilledResult<Awaited<ReturnType<typeof toCacheRow>>>).value);
+    .map((r) => (r as PromiseFulfilledResult<CacheRow>).value);
   const skipped = settled.length - rows.length;
 
   await db.delete(linearCache);

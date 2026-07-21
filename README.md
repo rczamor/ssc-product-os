@@ -97,13 +97,15 @@ node bin/run.mjs npx tsx runner/publish-feedback.ts              # publish data/
 node bin/run.mjs npx tsx runner/scrape-reviews.ts                # read-only review-site scrape (throttled, stops on bot walls)
 ```
 
-Matrix-derived Linear tickets are drafted (`runner/draft-tickets.ts` / `POST /api/runs/[id]/tickets/draft`) and pushed (`POST /api/runs/[id]/tickets/push`) only from the app, and only after a human clicks **Approve matrix** on Planning — that approval is the sole trigger, never automated. The Work tab's **Sync** button (or `POST /api/linear/sync`) refreshes the cached board from live Linear.
+Matrix-derived Linear tickets are drafted (`runner/draft-tickets.ts` / `POST /api/runs/[id]/tickets/draft`) and pushed (`POST /api/runs/[id]/tickets/push`) only from the app, and only after a human clicks **Approve matrix** on Planning — that approval is the sole trigger, never automated. The Work tab's **Sync** button (or `POST /api/linear/sync`) refreshes the whole cached board from live Linear.
+
+**Real-time inbound sync (Linear → app):** point a Linear webhook (Issue events) at `https://<your-app>/linear/webhook`. Each event verifies its HMAC signature against `LINEAR_WEBHOOK_SECRET`, then mirrors just that one issue into `linear_cache` (issues outside the SSC-ProductOS project are ignored) so the Work board reflects Linear edits without waiting for a manual Sync. Set `LINEAR_WEBHOOK_SECRET` in Vercel to the secret Linear shows when you create the webhook.
 
 ## Deploying (Vercel + Neon + Linear)
 
 1. Deploy this repo to Vercel (the app lives at the root; framework auto-detected).
 2. Create a Neon Postgres database (Vercel Marketplace → Neon, or neon.tech). `DATABASE_URL` set → the app auto-migrates on first connect (idempotent, race-tolerant across cold starts).
-3. Set env vars on the Vercel project — `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, `LINEAR_API_KEY` — and redeploy.
+3. Set env vars on the Vercel project — `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SESSION_SECRET`, `LINEAR_API_KEY`, and (for the inbound webhook) `LINEAR_WEBHOOK_SECRET` — and redeploy.
 4. Optional demo-before-real-data: `DB_SEED_ON_EMPTY=1` populates an empty deployed database with the labeled demo run, feedback, and metrics dataset (skips itself once any run exists) — writes are real and persist once `DATABASE_URL` is set, unlike the ephemeral PGlite-only path.
 5. Runner-side secrets (`SSC_EMAIL`, `SSC_PASSWORD`, `LANGFUSE_*`) stay in the Claude Code environment's `.env.local` only — the deployed app never sees them. To drive the admin-UI queue → poll loop or seed Linear/metrics against the deployed database, the runner's `.env.local` also needs the same `DATABASE_URL` (and `LINEAR_API_KEY`) as the deployed app.
 

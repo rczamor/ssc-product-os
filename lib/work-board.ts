@@ -44,13 +44,16 @@ export function verdictOf(issue: WorkIssue): KfdVerdict | null {
 }
 
 /**
- * Relative-time timeline buckets (A15) — the mockup's Now→This quarter lanes,
- * with the completed "Shipped" lane pinned to the BOTTOM so already-delivered
- * work sits below the forward-looking pipeline rather than above it.
+ * Timeline lanes, ordered soonest→latest, with the completed "Shipped" lane
+ * pinned to the BOTTOM so already-delivered work sits below the forward-looking
+ * pipeline. Issues land by DUE DATE (bucketOf), on a calendar-aware scale:
+ * "Today" is due-today/overdue, "Next 48 hours" is the following two days, and
+ * "This week" is the remainder of the current calendar week after those first
+ * three days — so the lanes track the actual week/month, not a rolling window.
  */
 export const TIMELINE_BUCKETS = [
   { key: "today", label: "Today" },
-  { key: "next-3-days", label: "Next 3 days" },
+  { key: "next-48h", label: "Next 48 hours" },
   { key: "this-week", label: "This week" },
   { key: "next-week", label: "Next week" },
   { key: "this-month", label: "This month" },
@@ -60,34 +63,71 @@ export const TIMELINE_BUCKETS = [
 ] as const;
 export type TimelineBucketKey = (typeof TIMELINE_BUCKETS)[number]["key"];
 
-/** Deterministic phase→bucket fallback for issues without a due date. */
+/** Deterministic phase→bucket fallback for issues WITHOUT a due date. */
 const PHASE_BUCKET: Record<string, TimelineBucketKey> = {
-  "phase:48h": "next-3-days",
+  "phase:48h": "next-48h",
   "phase:week-1": "this-week",
   "phase:week-2": "next-week",
   "phase:week-3": "this-month",
   "phase:day-30": "this-quarter",
 };
 
-function startOfDayMs(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+/** Midnight (UTC) of a date — due dates are date-only, so UTC keeps the day
+ *  boundary stable regardless of the server's local zone. */
+function utcMidnight(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+}
+function addDaysUTC(d: Date, n: number): Date {
+  return new Date(d.getTime() + n * 86_400_000);
+}
+/** Start (Monday 00:00 UTC) of the calendar week AFTER the one containing `d`. */
+function startOfNextWeekUTC(d: Date): Date {
+  const dow = d.getUTCDay(); // 0=Sun … 6=Sat
+  const daysToNextMonday = ((8 - dow) % 7) || 7;
+  return addDaysUTC(utcMidnight(d), daysToNextMonday);
 }
 
-/** Which timeline bucket an issue lands in, relative to `now`. */
+/**
+ * Which timeline lane an issue lands in, by due date relative to `now`:
+ *   today       — due today or overdue
+ *   next-48h    — due within the next two days
+ *   this-week   — due later in the current calendar week (after those 3 days)
+ *   next-week   — due in the next calendar week
+ *   this-month  — due later in the current calendar month
+ *   next-month  — due in the next calendar month
+ *   this-quarter— anything further out
+ * The upper bounds are computed as a monotonically non-decreasing sequence
+ * (each clamped to at least the previous), so the ranges never overlap and a
+ * lane simply empties when a calendar boundary has already passed (e.g. a
+ * Friday leaves no "this week" days after the first three). Undated issues fall
+ * back to their phase label.
+ */
 export function bucketOf(issue: WorkIssue, now: Date): TimelineBucketKey {
   if (issue.stateType === "completed" || issue.completedAt) return "shipped";
-  if (issue.dueDate) {
-    const due = new Date(`${issue.dueDate}T00:00:00`);
-    const days = Math.floor((startOfDayMs(due) - startOfDayMs(now)) / 86_400_000);
-    if (days <= 0) return "today";
-    if (days <= 3) return "next-3-days";
-    if (days <= 7) return "this-week";
-    if (days <= 14) return "next-week";
-    if (days <= 31) return "this-month";
-    if (days <= 62) return "next-month";
-    return "this-quarter";
-  }
-  return PHASE_BUCKET[phaseOf(issue) ?? ""] ?? "this-quarter";
+  if (!issue.dueDate) return PHASE_BUCKET[phaseOf(issue) ?? ""] ?? "this-quarter";
+
+  const due = utcMidnight(new Date(`${issue.dueDate}T00:00:00Z`)).getTime();
+  const t0 = utcMidnight(now);
+  const uToday = addDaysUTC(t0, 1).getTime(); // due < this → today (overdue + today)
+  const u48 = addDaysUTC(t0, 3).getTime(); // the two days after today
+  const w1 = startOfNextWeekUTC(now).getTime();
+  const w2 = addDaysUTC(new Date(w1), 7).getTime();
+  const m1 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+  const m2 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1);
+
+  // Monotone upper bounds: each lane ends no earlier than the previous one.
+  const uThisWeek = Math.max(u48, w1);
+  const uNextWeek = Math.max(uThisWeek, w2);
+  const uThisMonth = Math.max(uNextWeek, m1);
+  const uNextMonth = Math.max(uThisMonth, m2);
+
+  if (due < uToday) return "today";
+  if (due < u48) return "next-48h";
+  if (due < uThisWeek) return "this-week";
+  if (due < uNextWeek) return "next-week";
+  if (due < uThisMonth) return "this-month";
+  if (due < uNextMonth) return "next-month";
+  return "this-quarter";
 }
 
 export interface TimelineBucket {

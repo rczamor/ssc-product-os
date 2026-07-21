@@ -93,14 +93,20 @@ function startOfNextWeekUTC(d: Date): Date {
  *   next-48h    — due within the next two days
  *   this-week   — due later in the current calendar week (after those 3 days)
  *   next-week   — due in the next calendar week
- *   this-month  — due later in the current calendar month
- *   next-month  — due in the next calendar month
+ *   this-month  — due within ~a month (rolling), after next week
+ *   next-month  — due within ~the following month (rolling)
  *   this-quarter— anything further out
- * The upper bounds are computed as a monotonically non-decreasing sequence
- * (each clamped to at least the previous), so the ranges never overlap and a
- * lane simply empties when a calendar boundary has already passed (e.g. a
- * Friday leaves no "this week" days after the first three). Undated issues fall
- * back to their phase label.
+ *
+ * Today / 48h / this-week / next-week follow the CALENDAR (week starts Monday);
+ * this-month / next-month are ROLLING ~30/60-day windows rather than the strict
+ * calendar month — a strict calendar month would leave "This month" EMPTY and
+ * overflow "Next month" whenever today is already late in the month (e.g. a
+ * late-July "now" pushes every August item into Next month). All timezone math
+ * is UTC so server-render and client-hydration agree (no off-by-one flicker).
+ * The upper bounds are a monotonically non-decreasing sequence (each clamped to
+ * at least the previous), so ranges never overlap and a lane simply empties
+ * when its boundary has already passed (e.g. a Friday leaves no "this week"
+ * days after the first three). Undated issues fall back to their phase label.
  */
 export function bucketOf(issue: WorkIssue, now: Date): TimelineBucketKey {
   if (issue.stateType === "completed" || issue.completedAt) return "shipped";
@@ -112,14 +118,13 @@ export function bucketOf(issue: WorkIssue, now: Date): TimelineBucketKey {
   const u48 = addDaysUTC(t0, 3).getTime(); // the two days after today
   const w1 = startOfNextWeekUTC(now).getTime();
   const w2 = addDaysUTC(new Date(w1), 7).getTime();
-  const m1 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
-  const m2 = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1);
 
   // Monotone upper bounds: each lane ends no earlier than the previous one.
   const uThisWeek = Math.max(u48, w1);
   const uNextWeek = Math.max(uThisWeek, w2);
-  const uThisMonth = Math.max(uNextWeek, m1);
-  const uNextMonth = Math.max(uThisMonth, m2);
+  // Rolling ~30/60-day windows (see note above) rather than calendar months.
+  const uThisMonth = Math.max(uNextWeek, addDaysUTC(t0, 31).getTime());
+  const uNextMonth = Math.max(uThisMonth, addDaysUTC(t0, 62).getTime());
 
   if (due < uToday) return "today";
   if (due < u48) return "next-48h";

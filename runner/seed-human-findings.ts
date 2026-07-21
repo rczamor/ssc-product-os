@@ -52,6 +52,20 @@ const ENTRIES: HumanEntry[] = [
     },
   },
   {
+    key: "human-riche-action-plan-collaborative",
+    whyItWorks:
+      "It's the one surface where planned remediation becomes real, trackable, collaborative work — not another static report.",
+    finding: {
+      persona: "ciso",
+      kind: "like",
+      verdict: "double_down",
+      title: "Action plans make remediation collaborative, trackable work — not a static report",
+      detail:
+        "The action plan is the one place in the product that isn't a static page of content or a data visualization — it's where the work planned to remediate our cybersecurity issues and vulnerabilities becomes meaningful units of work that can be assigned, tracked, and collaborated on with individuals and teams. You can start conversations, and there's real workflow to it. Double down here: this collaborative, workflow-first surface is the product's biggest differentiator versus static scoring. The bet is to route more of the platform's findings into assignable, trackable, discussable plans so remediation is something teams work together, not a report they read.",
+      jtbd: "Turn our security findings into assigned, tracked work my team can collaborate on — not just another report.",
+    },
+  },
+  {
     key: "human-riche-home-hierarchy",
     finding: {
       persona: "ciso",

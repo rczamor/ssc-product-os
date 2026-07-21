@@ -133,14 +133,15 @@ describe("bucketOf — calendar-aware, due-date driven", () => {
     expect(at("2026-07-26")).toBe("this-week"); // Sun, last day of this calendar week
   });
 
-  it("Next week / months follow the calendar, not a rolling window", () => {
+  it("Next week is the next calendar week; months are rolling ~30/60-day windows", () => {
     expect(at("2026-07-27")).toBe("next-week"); // next Monday
     expect(at("2026-08-02")).toBe("next-week"); // next Sunday
-    // The current calendar month (July) is fully consumed by the lanes above,
-    // so August dues land in Next month, and September+ in This quarter.
-    expect(at("2026-08-03")).toBe("next-month");
-    expect(at("2026-08-31")).toBe("next-month");
-    expect(at("2026-09-15")).toBe("this-quarter");
+    // Months are rolling (not strict calendar), so "This month" is never empty
+    // just because today is late in the month: ~2 weeks out is still This month.
+    expect(at("2026-08-03")).toBe("this-month");
+    expect(at("2026-08-19")).toBe("this-month"); // within ~31 days of Jul 20
+    expect(at("2026-09-15")).toBe("next-month"); // within ~62 days
+    expect(at("2026-10-20")).toBe("this-quarter"); // beyond
   });
 
   it("empties This week once the first three days reach the weekend (a Friday now)", () => {
@@ -155,5 +156,23 @@ describe("bucketOf — calendar-aware, due-date driven", () => {
     expect(bucketOf(issue({ dueDate: null, labels: ["phase:48h"] }), now)).toBe("next-48h");
     expect(bucketOf(issue({ dueDate: null, labels: ["phase:week-1"] }), now)).toBe("this-week");
     expect(bucketOf(issue({ dueDate: null, labels: [] }), now)).toBe("this-quarter");
+  });
+
+  it("places the real role-plan + AI-workflow due dates in the expected lanes (now = Tue Jul 21)", () => {
+    // Encodes the live SSC-ProductOS ticket due dates so a regression in the
+    // lane math is caught against the actual data the Work board renders.
+    const tue = new Date("2026-07-21T12:00:00Z");
+    const b = (d: string) => bucketOf(issue({ dueDate: d }), tue);
+    expect(b("2026-07-20")).toBe("today"); // Day 1 (overdue)
+    expect(b("2026-07-21")).toBe("today"); // Day 2 / AI wf 1
+    expect(b("2026-07-22")).toBe("next-48h"); // Day 3
+    expect(b("2026-07-23")).toBe("next-48h"); // Day 4 / AI wf 2
+    expect(b("2026-07-24")).toBe("this-week"); // Day 5
+    expect(b("2026-07-27")).toBe("next-week"); // AI wf 3 (next Monday)
+    expect(b("2026-07-29")).toBe("next-week"); // Week 2
+    expect(b("2026-08-03")).toBe("this-month"); // AI wf 4
+    expect(b("2026-08-13")).toBe("this-month"); // Month 1
+    expect(b("2026-08-14")).toBe("this-month"); // Month 1 / AI wf 5
+    expect(b("2026-08-21")).toBe("next-month"); // Weeks 5-6
   });
 });

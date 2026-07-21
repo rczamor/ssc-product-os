@@ -46,7 +46,6 @@ export default function MetricCard({ card }: { card: MetricCardData }) {
 
   const trippedTrigger =
     trippedExamples.find((e) => e.triggerText)?.triggerText ?? metric.actionTrigger;
-  const relatedFeatures = linkedFeatures.map((f) => f.name).join(" · ") || "—";
 
   return (
     <div
@@ -124,10 +123,21 @@ export default function MetricCard({ card }: { card: MetricCardData }) {
               <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Cadence</div>
               <div className="text-[11.5px] text-ink-2">{metric.cadence}</div>
             </div>
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Related features</div>
-              <div className="text-[11.5px] text-ink-2">{relatedFeatures}</div>
-            </div>
+          </div>
+          {/* Related features: full-width, one feature per line. */}
+          <div className="mb-[11px]">
+            <div className="text-[9px] uppercase tracking-[0.06em] text-ink-7">Related features</div>
+            {linkedFeatures.length === 0 ? (
+              <div className="text-[11.5px] text-ink-2">—</div>
+            ) : (
+              <div className="mt-[3px] flex flex-col gap-[2px]">
+                {linkedFeatures.map((f) => (
+                  <div key={f.key} className="text-[11.5px] text-ink-2">
+                    {f.name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="rounded-[6px] border border-line-2 bg-card px-[11px] py-[9px]">
             <div className="mb-[3px] text-[9px] uppercase tracking-[0.06em] text-ink-7">Action trigger</div>

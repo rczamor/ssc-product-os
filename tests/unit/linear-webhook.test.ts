@@ -76,4 +76,28 @@ describe("POST /linear/webhook", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).skipped).toBe("no-api-key");
   });
+
+  it("removes a cached issue that an update moved OUT of the project (no ghost row)", async () => {
+    const { getDb } = await import("@/lib/db");
+    const { linearCache } = await import("@/lib/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = await getDb();
+    await db
+      .insert(linearCache)
+      .values({ id: "ghost-1", identifier: "TRZ-9", title: "Moved out", stateName: "Todo", stateType: "unstarted" })
+      .onConflictDoNothing();
+
+    // An update whose payload shows the issue now belongs to another project.
+    const body = JSON.stringify({
+      action: "update",
+      type: "Issue",
+      data: { id: "ghost-1", projectId: "some-other-project-id" },
+    });
+    const res = await webhookPost(req(body, sign(body)));
+    expect(res.status).toBe(200);
+    expect((await res.json()).ignored).toBe("other-project");
+
+    const rows = await db.select().from(linearCache).where(eq(linearCache.id, "ghost-1"));
+    expect(rows).toHaveLength(0); // the stale row was deleted, not left behind
+  });
 });

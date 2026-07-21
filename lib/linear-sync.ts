@@ -77,10 +77,16 @@ async function bumpSyncState(db: Db): Promise<void> {
     .from(linearCache);
   const n = Number(count);
   const now = new Date();
+  // Clear any stale "N issue(s) failed to sync" note from a prior full sync — a
+  // successful per-issue write means the cache is current, so the warning
+  // shouldn't linger next to a fresh "synced just now" stamp.
   await db
     .insert(linearSyncState)
-    .values({ id: "project", lastSyncedAt: now, issueCount: n })
-    .onConflictDoUpdate({ target: linearSyncState.id, set: { lastSyncedAt: now, issueCount: n } });
+    .values({ id: "project", lastSyncedAt: now, issueCount: n, note: null })
+    .onConflictDoUpdate({
+      target: linearSyncState.id,
+      set: { lastSyncedAt: now, issueCount: n, note: null },
+    });
 }
 
 /**
@@ -96,7 +102,12 @@ export async function upsertIssueToCache(db: Db, issueId: string): Promise<boole
   const issue = await getLinearClient().issue(issueId);
   if (!issue) return false;
   const project = await issue.project;
-  if (project?.id !== cfg.project.id) return false; // not our project — ignore
+  if (project?.id !== cfg.project.id) {
+    // Not (or no longer) in our project — if it was cached from when it was,
+    // drop the now-stale row rather than leaving a ghost on the Work board.
+    await removeIssueFromCache(db, issueId);
+    return false;
+  }
   const row = await issueToCacheRow(issue);
   await db
     .insert(linearCache)

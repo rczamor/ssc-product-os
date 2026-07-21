@@ -35,29 +35,36 @@ export async function POST(req: NextRequest) {
   if (event.type !== "Issue" || !event.data?.id) {
     return NextResponse.json({ ok: true, ignored: true });
   }
-
-  // Cheap pre-filter: if the payload already tells us the issue is in another
-  // project, don't even fetch it. (A `remove` event may omit projectId; those
-  // fall through to a by-id delete, which is a no-op when nothing is cached.)
-  const cfg = getLinearConfig();
-  if (event.data.projectId && event.data.projectId !== cfg.project.id) {
-    return NextResponse.json({ ok: true, ignored: "other-project" });
-  }
-
-  // Enriching an upsert needs the API key. If it's unset, ack (don't 5xx) so
-  // Linear doesn't hammer retries against a deployment that can't process yet.
-  if (!isLinearConfigured()) {
-    console.warn("linear webhook received but LINEAR_API_KEY is unset — skipped");
-    return NextResponse.json({ ok: true, skipped: "no-api-key" });
-  }
+  const issueId = event.data.id;
 
   try {
     const db = await getDb();
+    const cfg = getLinearConfig();
+
+    // A delete — or an update whose payload already shows the issue is now in a
+    // DIFFERENT project (a move OUT of ours) — must be REMOVED from the cache,
+    // not just ignored, so no ghost row lingers on the Work board. Both are pure
+    // DB deletes, so they work even without a Linear API key.
     if (event.action === "remove") {
-      await removeIssueFromCache(db, event.data.id);
+      await removeIssueFromCache(db, issueId);
       return NextResponse.json({ ok: true, action: "remove" });
     }
-    const upserted = await upsertIssueToCache(db, event.data.id);
+    if (event.data.projectId && event.data.projectId !== cfg.project.id) {
+      await removeIssueFromCache(db, issueId);
+      return NextResponse.json({ ok: true, ignored: "other-project" });
+    }
+
+    // Enriching a create/update upsert needs the API key. If it's unset, ack
+    // (don't 5xx) so Linear doesn't hammer retries against a deployment that
+    // can't process yet.
+    if (!isLinearConfigured()) {
+      console.warn("linear webhook received but LINEAR_API_KEY is unset — skipped");
+      return NextResponse.json({ ok: true, skipped: "no-api-key" });
+    }
+
+    // upsertIssueToCache re-fetches the issue and, if it turns out not to be in
+    // our project (payload lacked projectId), deletes the stale row instead.
+    const upserted = await upsertIssueToCache(db, issueId);
     return NextResponse.json({ ok: true, action: event.action ?? "update", upserted });
   } catch (e) {
     console.error("linear webhook processing failed:", e);

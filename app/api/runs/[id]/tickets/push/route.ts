@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { isRunApproved } from "@/lib/db/queries";
 import { ensureTicketDraft, getTicketDraft } from "@/lib/db/tickets";
+import { findings } from "@/lib/db/schema";
 import { isLinearConfigured } from "@/lib/linear";
 import { LinearNotConfiguredError, pushDraftToLinear } from "@/lib/linear-sync";
 import { isUuid } from "@/lib/validation";
@@ -71,6 +73,19 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const alreadyPushed = Boolean(existing?.pushedAt);
   try {
     const pushed = await pushDraftToLinear(db, id);
+    // The flagged themes are now attached to Linear tickets — archive them
+    // (reason 'converted') so they drop off the active Plan list. Idempotent:
+    // a re-push re-runs this over already-archived rows and changes nothing.
+    await db
+      .update(findings)
+      .set({ archived: true, archivedReason: "converted" })
+      .where(
+        and(
+          eq(findings.runId, id),
+          eq(findings.selectedForTicket, true),
+          eq(findings.archived, false),
+        ),
+      );
     return NextResponse.json({ pushed, alreadyPushed, count: pushed.length }, { status: 200 });
   } catch (e) {
     if (e instanceof LinearNotConfiguredError) {

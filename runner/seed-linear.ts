@@ -172,7 +172,7 @@ const ROLE_PLAN: SeedTicket[] = [
     key: "roleplan-ai-workflows",
     title: "AI workflows 2 through 5 stood up",
     description:
-      "Feedback-to-theme clustering, matrix-to-Linear drafting, Friday Update generation, rhythm-drift/shipped-not-adopted detection — each live with a named human reviewer and a success metric.",
+      "Stand up the remaining reusable AI workflows — competitive & market intelligence, product planning → prototype, automated prototype testing, and business-case / investment memo — each live with a named human reviewer and a success metric.",
     labels: ["track:internal", "origin:role-plan", "phase:week-3"],
     priority: 2,
     state: "Todo",
@@ -194,94 +194,98 @@ const ROLE_PLAN: SeedTicket[] = [
 
 /**
  * The 5 reusable Claude/AI workflows to stand up in the first 90 days
- * (take-home Prompt 4). Live in Linear as TRZ-1913..1917; kept here so a fresh
- * workspace reseed recreates them (idempotent by title). track:internal +
- * origin:role-plan so they render on the ProductOS timeline/kanban.
+ * (take-home Prompt 4), authored to Riché's specific product-operating
+ * workflows. Live in Linear as TRZ-1913..1917; kept here so a fresh workspace
+ * reseed recreates them (idempotent by title). track:internal + origin:role-plan
+ * so they render on the ProductOS timeline/kanban; near-term due dates spread
+ * them across today → this-month on the relative-time timeline.
  */
 const AI_WORKFLOWS: SeedTicket[] = [
   {
-    key: "aiwf-transcript-themes",
-    title: "AI workflow 1/5: Transcript → roadmap themes",
+    key: "aiwf-engagement-synthesis",
+    title: "AI workflow 1/5: Daily customer-engagement synthesis + weekly roll-up",
     description:
-      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "transcript-to-roadmap themes"). Human-in-the-loop by design: the model drafts, a named PM approves before anything reaches the roadmap.\n\n' +
-      "**Inputs**\n- Gong/Zoom call transcripts (discovery, CS, renewal) from the Snowflake customer-insights layer.\n- The persona / maturity framework for persona-matching.\n- Current roadmap + open Jira (PRODF) epics, to avoid re-proposing known work.\n\n" +
-      "**Steps**\n1. Pull the week's transcripts; strip PII.\n2. Extract pains, requests, and verbatims; tag with account, ARR band, persona.\n3. Cluster into themes; dedupe against last week + existing roadmap items.\n4. Rank by frequency × ARR weight × strategic fit; attach 2–3 verbatims each.\n5. Draft candidate roadmap cards (problem, evidence, personas).\n\n" +
-      "**Outputs**\n- A weekly Voice-of-Customer themes brief with linked verbatims.\n- Candidate roadmap cards drafted as proposals (never auto-committed).\n\n" +
-      "**Human review**\n- The owning PM validates each theme against the calls and accepts / merges / rejects before it becomes a candidate.\n\n" +
-      "**Automation plan**\n- Scheduled Friday run; posts to Slack #product and drafts proposal cards; a human promotes to the roadmap.\n\n" +
-      "**Success metric**\n- % of roadmap items traceable to a customer verbatim (≥80%); theme → spec cycle time.",
+      "Daily AI synthesis of how customers are actually engaging with the product, rolled up weekly into an updated view of who our customers are and what to build next. Human-in-the-loop: the model synthesizes and drafts; a named PM validates the weekly roll-up before personas/JTBD or action items change.\n\n" +
+      "**Inputs**\n- Product analytics (Pendo/Heap): usage, funnels, feature adoption.\n- Session replay data (e.g. FullStory/LogRocket) for behavioral signal.\n- Recent customer feedback (Pendo Listen, support, reviews).\n- Bug tickets reported in the window (Jira PRODF / support).\n- Notes and transcripts from customer success manager calls.\n\n" +
+      "**Steps — daily**\n1. Pull the day's product analytics, session replays, customer feedback, reported bugs, and CSM call notes.\n2. Synthesize each source into an individual daily report: what changed, notable sessions, emerging complaints, new bugs.\n\n" +
+      "**Steps — weekly roll-up**\n3. Aggregate the week's daily reports and analyze engagement against the trailing three months.\n4. Flag where behavior is lagging or trending down versus that baseline.\n5. Output updated persona and jobs-to-be-done statements reflecting what the data now shows.\n6. Draft action items the team could focus on in the next one to two weeks to improve the product where we see lagging behavior.\n\n" +
+      "**Outputs**\n- Individual daily engagement reports.\n- A weekly roll-up: engagement vs. trailing-3-months, updated personas + JTBD, and 1–2 week action items.\n\n" +
+      "**Human review**\n- The owning PM validates the weekly roll-up and approves persona/JTBD updates and action items before they're adopted.\n\n" +
+      "**Automation plan**\n- Scheduled daily run produces the individual reports; a Friday roll-up posts to Slack #product for PM sign-off.\n\n" +
+      "**Success metric**\n- Source coverage (all inputs synthesized daily); action items shipped per cycle; engagement recovery on flagged areas vs. the 3-month baseline.",
+    labels: ["track:internal", "origin:role-plan", "phase:48h"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 1,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-competitive-intel",
+    title: "AI workflow 2/5: Competitive & market intelligence",
+    description:
+      "A recurring competitive- and market-intelligence workflow that watches the market and our competitors and turns it into product recommendations. Weekly report, monthly synthesis.\n\n" +
+      "**Inputs**\n- News sources and press covering competitors and the category.\n- Competitor websites (product, pricing, changelog / release pages).\n- Competitive-intelligence tools (e.g. Klue / Crayon).\n- Review sites (G2, Capterra, TrustRadius) — reviews of our competitors.\n\n" +
+      "**Steps**\n1. Ingest data from news sources, competitor websites, and competitive-intelligence tools for the window.\n2. Pull and analyze reviews of our competitors from the review sites — what customers praise and complain about.\n3. Identify the latest developments related to each competitor's business and their products (launches, pricing moves, positioning shifts).\n4. Compare against our roadmap and positioning to surface gaps and opportunities.\n\n" +
+      "**Outputs**\n- A weekly competitive-intelligence report: what changed this week and why it matters.\n- A monthly synthesis of the data with recommendations on what we could be doing to improve the product and be more competitive in the market.\n\n" +
+      "**Human review**\n- Product + PMM review the recommendations before any feed the roadmap or messaging.\n\n" +
+      "**Automation plan**\n- Weekly scheduled run posts the report to Slack #product; a monthly run produces the synthesis + recommendations.\n\n" +
+      "**Success metric**\n- Competitive gaps closed per quarter; win/loss shifts on named competitors; roadmap items traceable to a market signal.",
+    labels: ["track:internal", "origin:role-plan", "phase:48h"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 3,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-product-planning",
+    title: "AI workflow 3/5: Product planning → prototype",
+    description:
+      "A product-planning workflow that turns PM inputs into a defined concept, then hands epics to AI agents that build and stage an initial prototype. The goal: a PM reads one of our generated reports, hands Claude Code (or Slack) the problem and their hypothesized solution, and comes back to a working prototype ready to test.\n\n" +
+      "**Inputs**\n- PM inputs such as the competitive-analysis / intelligence report and the customer-engagement report's recommendations.\n- The PM's own problem statement and hypothesis for the solution.\n- Current roadmap + open epics, to align and avoid duplication.\n\n" +
+      "**Steps**\n1. Take the defined problem and the hypothesis for the solution.\n2. Run it through a planning workflow to develop a high-level concept.\n3. Output epics to a board.\n4. Once the epics are created, AI agents pick them up and build an initial prototype.\n5. Stage the prototype somewhere the PM can reach it.\n\n" +
+      "**Example flow**\n- A PM reads one of the reports we generate for them, shares it with Claude Code or Slack, and says: \"I'd like you to create a prototype — this is the problem I see, and this is the solution I think will help address it.\" The agents build a fully functioning prototype the PM can test by the time they get back to their desk.\n\n" +
+      "**Outputs**\n- A high-level concept doc (problem, hypothesis, approach).\n- Epics on the board.\n- A staged, testable prototype.\n\n" +
+      "**Human review**\n- The PM reviews the concept and epics and decides whether the staged prototype is worth testing further.\n\n" +
+      "**Automation plan**\n- Triggered on demand from Claude Code / Slack; agents run the plan → epics → build → stage pipeline and report back with the prototype link.\n\n" +
+      "**Success metric**\n- Time from problem statement to a testable prototype; share of prototypes that advance to user testing.",
+    labels: ["track:internal", "origin:role-plan", "phase:week-1"],
+    priority: 2,
+    state: "Todo",
+    dueDayOffset: 7,
+    subIssues: [],
+  },
+  {
+    key: "aiwf-prototype-testing",
+    title: "AI workflow 4/5: Automated prototype testing",
+    description:
+      "Once a prototype is prepared, automatically get it in front of testers, collect and synthesize the feedback, and iterate the prototype until it satisfies the panel.\n\n" +
+      "**Inputs**\n- A staged prototype (from the product-planning workflow).\n- A target test audience: a user-testing service, or a subset of our customer advisory board.\n- A definition of \"satisfactory\" — the success criteria for the panel.\n\n" +
+      "**Steps**\n1. Deploy the prototype to a user-testing service or to the chosen subset of our customer advisory board.\n2. Collect the feedback data from the panel.\n3. Synthesize the results — what worked, what didn't, where testers got stuck.\n4. Automatically optimize / improve the prototype given the feedback.\n5. Repeat the deploy → collect → synthesize → improve loop until we reach a version that is satisfactory to our customers or to the panel of people we are testing against.\n\n" +
+      "**Outputs**\n- Synthesized test-result reports per round.\n- An improved prototype that meets the panel's bar.\n\n" +
+      "**Human review**\n- The PM sets the success bar and confirms when a version is satisfactory (or calls it off).\n\n" +
+      "**Automation plan**\n- Runs the test-and-optimize loop on each prototype; each round posts a synthesis + the updated build for review.\n\n" +
+      "**Success metric**\n- Rounds to satisfactory; panel satisfaction score; prototype iteration cycle time.",
     labels: ["track:internal", "origin:role-plan", "phase:week-2"],
     priority: 2,
     state: "Todo",
-    dueDayOffset: 12,
+    dueDayOffset: 14,
     subIssues: [],
   },
   {
-    key: "aiwf-feedback-matching",
-    title: "AI workflow 2/5: Feedback → Jira/matrix matching",
+    key: "aiwf-business-case",
+    title: "AI workflow 5/5: Business-case / investment memo",
     description:
-      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "feedback-to-Jira matching"). This app already models the pattern end-to-end (matrix → drafted tickets → human approval → Linear push); this generalizes it to the live Pendo/support stream.\n\n' +
-      "**Inputs**\n- Pendo Listen feedback, support tickets, the persona-review matrix findings.\n- The existing Jira (PRODF) issue corpus + labels.\n\n" +
-      "**Steps**\n1. Normalize + dedupe incoming feedback (content hash).\n2. Embed + match against existing Jira issues; classify duplicate-of / relates-to / net-new.\n3. Attach verbatim + running count + persona to the matched issue.\n4. For net-new, draft a ticket (problem, evidence, proposed priority) as a proposal.\n\n" +
-      "**Outputs**\n- Every feedback item linked to a tracked issue or a drafted new one, with evidence + confidence.\n\n" +
-      "**Human review**\n- A PM confirms the match or creates the ticket — the same hard approval gate this app enforces for the matrix push.\n\n" +
-      "**Automation plan**\n- Runs on each feedback batch; writes proposals only; approved proposals push idempotently.\n\n" +
-      "**Success metric**\n- Feedback triage time (<1 business day); % linked within a week; match precision vs human accept-rate.",
-    labels: ["track:internal", "origin:role-plan", "phase:week-2"],
-    priority: 2,
-    state: "Todo",
-    dueDayOffset: 12,
-    subIssues: [],
-  },
-  {
-    key: "aiwf-release-notes",
-    title: "AI workflow 3/5: Release notes from Jira + GitHub",
-    description:
-      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "release notes from Jira/GitHub"). Closes the loop between shipping and telling customers, with ROI framing.\n\n' +
-      "**Inputs**\n- Jira (PRODF) issues moved to Done in the window.\n- Merged GitHub PRs (titles, linked issues, labels).\n- Adoption metrics per feature (Pendo/Heap) for framing.\n\n" +
-      "**Steps**\n1. Collect completed work; join Jira issues to their PRs.\n2. Group by feature / persona; drop internal-only churn.\n3. Draft a customer-facing note (benefit + ROI) and an internal changelog (what/why/risk).\n4. Link each note to the adoption metric it should move.\n\n" +
-      "**Outputs**\n- Customer-facing release notes + internal changelog, posted to Slack / Confluence.\n\n" +
-      "**Human review**\n- PM/PMM edits tone and customer framing before publish.\n\n" +
-      "**Automation plan**\n- Runs weekly and on Thursday release-train sign-off; drafts both for one-click publish.\n\n" +
-      "**Success metric**\n- Release-note lead time (sign-off → published, same day); adoption lift on noted features.",
-    labels: ["track:internal", "origin:role-plan", "phase:week-3"],
-    priority: 3,
-    state: "Todo",
-    dueDayOffset: 19,
-    subIssues: [],
-  },
-  {
-    key: "aiwf-low-adoption",
-    title: "AI workflow 4/5: Low-adoption / high-effort feature detection",
-    description:
-      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "low-adoption/high-effort feature detection"). The Measure tab already trips these triggers; this packages detection + routing into a repeatable CCB input.\n\n' +
-      "**Inputs**\n- Pendo/Heap adoption + the metrics registry (Feature Adoption, Activation D7/D30/D90, Friction Index).\n- Engineering effort signals (Span/DORA, story points, maintenance load).\n- The feature taxonomy (rhythm class + value role).\n\n" +
-      "**Steps**\n1. Compute adoption vs. effort per feature against each feature's rhythm-class baseline.\n2. Flag shipped-not-adopted (<25% D30), legacy (<2%, no tier-1 dependency), high-effort/low-adoption.\n3. Draft a CCB decision packet per flagged feature with a recommended Kill / Fix / Double-Down + evidence.\n\n" +
-      "**Outputs**\n- The Measure tab's Action Queue + a per-feature CCB decision packet.\n\n" +
-      "**Human review**\n- The CCB makes the kill/invest call; the PM commits the first action. The workflow never kills on its own.\n\n" +
-      "**Automation plan**\n- Runs weekly; auto-drafts the CCB decision issue and routes it to the Thursday agenda.\n\n" +
-      "**Success metric**\n- Count of forced kill/invest decisions per quarter; engineering effort reclaimed.",
+      "Once we have data from the tested prototype, build an investment memo that makes the business case for productionizing the feature — solid enough for a PM to take to leadership.\n\n" +
+      "**Inputs**\n- Prototype test data (from the automated prototype-testing workflow): user feedback + results.\n- Revenue data — potential / associated revenue, pipeline, expansion.\n- Other engagement metrics relevant to the feature.\n\n" +
+      "**Steps**\n1. Pull the prototype's user-test feedback and results.\n2. Pull the revenue data and the related engagement metrics.\n3. Build an investment memo: the problem, the validated solution, the expected impact, and the ask.\n4. Make the business case for building out and productionizing this area of the product.\n\n" +
+      "**Outputs**\n- An investment memo a product manager can take to leadership, if needed, to justify the investment in this area of the product.\n\n" +
+      "**Human review**\n- The PM reviews and owns the memo before it goes to leadership.\n\n" +
+      "**Automation plan**\n- Triggered once prototype testing reaches a satisfactory version; drafts the memo from the test + revenue + engagement data for PM review.\n\n" +
+      "**Success metric**\n- Memo turnaround time; investment decisions supported; win rate of memos taken to leadership.",
     labels: ["track:internal", "origin:role-plan", "phase:week-3"],
     priority: 2,
     state: "Todo",
-    dueDayOffset: 19,
-    subIssues: [],
-  },
-  {
-    key: "aiwf-ccb-recap",
-    title: "AI workflow 5/5: Weekly CCB recap",
-    description:
-      'Reusable Claude/AI workflow to stand up in the first 90 days (take-home Prompt 4 — "weekly CCB recap"). Turns the Change Control Board into a written, traceable record the same day it meets.\n\n' +
-      "**Inputs**\n- CCB meeting notes / decision log.\n- Jira (PRODF) scope changes and release sign-offs from the session.\n- The week's R/Y/G roll-up.\n\n" +
-      "**Steps**\n1. Summarize decisions: approved, deferred, killed — with rationale.\n2. Link every decision to affected tickets, owners, due dates.\n3. Draft the recap and the ticket-state updates the decisions imply.\n\n" +
-      "**Outputs**\n- A CCB recap posted to Slack / Confluence + a proposed set of ticket updates.\n\n" +
-      "**Human review**\n- Product Ops verifies decisions and owners before the recap posts and before any ticket changes.\n\n" +
-      "**Automation plan**\n- Runs right after the Thursday CCB; posts the recap and stages ticket updates for one-click confirmation.\n\n" +
-      "**Success metric**\n- Recap same-day rate (100%); decision → action latency (owner + first action within 24h).",
-    labels: ["track:internal", "origin:role-plan", "phase:day-30"],
-    priority: 3,
-    state: "Todo",
-    dueDayOffset: 30,
+    dueDayOffset: 25,
     subIssues: [],
   },
 ];

@@ -104,11 +104,17 @@ export const findings = pgTable(
     verdict: text("verdict"),
     /** agent | human — who authored this finding (agent runs vs. reviewer adds). */
     origin: text("origin").notNull().default("agent"),
-    /** Human-curated "convert this theme to a Linear ticket" flag. When ANY
-     *  finding in a run is selected, the matrix→Linear draft converts only the
-     *  selected ones (incl. human findings); when none are, it falls back to the
-     *  full deliverable KFD table (the original all-rows behavior). */
+    /** Human-curated "convert this theme to a Linear ticket" flag. The
+     *  matrix→Linear draft converts ONLY the flagged findings (incl. human
+     *  findings, which never enter the KFD table); when none are flagged there
+     *  is nothing to convert. Flagging is the sole convert trigger. */
     selectedForTicket: boolean("selected_for_ticket").notNull().default(false),
+    /** Archived themes are hidden from the active Plan list. Set on Approve:
+     *  flagged→converted findings archive with reason 'converted' once pushed to
+     *  Linear; downvoted-and-not-flagged findings archive with reason 'rejected'. */
+    archived: boolean("archived").notNull().default(false),
+    /** converted | rejected — why the finding was archived (null while active). */
+    archivedReason: text("archived_reason"),
     screenshotIds: jsonb("screenshot_ids").$type<string[]>().notNull().default([]),
     /** Full finding object as validated. */
     raw: jsonb("raw").notNull(),

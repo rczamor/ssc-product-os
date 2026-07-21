@@ -5,7 +5,7 @@ import { useState } from "react";
 
 /**
  * The human up/down vote block on a single finding — the matrix right-rail's
- * "Your review · judge 1–5" control. Persists via POST /api/runs/[id]/reviews
+ * "Is this accurate?" control. Persists via POST /api/runs/[id]/reviews
  * (upsert, reviewer_type='human'), then refreshes so the accuracy strip and any
  * derived state recompute. The selected direction tints green (up) / red (down).
  */
@@ -68,7 +68,7 @@ export default function ReviewControls({
 
   return (
     <div>
-      <div className="mb-1 text-[9.5px] text-ink-6">Your review · judge 1–5</div>
+      <div className="mb-1 text-[9.5px] text-ink-6">Is this accurate?</div>
       <div className="flex gap-[5px]">
         {btn("up", "▲")}
         {btn("down", "▼")}

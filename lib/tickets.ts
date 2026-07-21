@@ -66,8 +66,15 @@ export function draftTicketsFromDeliverable(
           `**Proposed for kill** from the approved platform-review matrix.\n\n` +
             `**Customer pain:** ${customerPain}\n\n` +
             `**Personas affected:** ${personas.join(", ")}\n\n` +
-            `Bring to the Change Control Board for a kill/keep decision with the ` +
-            `account-impact and adoption evidence. Source findings: ` +
+            `### Requirements\n` +
+            `- Assemble account-impact and adoption evidence for "${item}" (reach %, top-decile ARR exposure).\n` +
+            `- Identify every persona and dependent workflow that touches it before removing it.\n` +
+            `- Draft the kill / keep recommendation with a migration path for affected accounts.\n\n` +
+            `### Acceptance criteria\n` +
+            `- [ ] CCB reviews the recommendation with adoption + ARR-impact data attached.\n` +
+            `- [ ] A decision (kill / keep / defer) is recorded with its rationale.\n` +
+            `- [ ] If killed, a deprecation + customer-migration plan is linked to this issue.\n\n` +
+            `Bring to the Change Control Board for the decision. Source findings: ` +
             `${sourceFindingKeys.join(", ") || "n/a"}.`,
           6000,
         ),
@@ -83,6 +90,28 @@ export function draftTicketsFromDeliverable(
     const phase = phaseForEffort(row.effort);
     const priority =
       row.verdict === "double_down" ? TICKET_PRIORITY.high : TICKET_PRIORITY.medium;
+    const isDoubleDown = row.verdict === "double_down";
+    const personaList = personas.join(", ");
+    // Requirements + acceptance criteria are written INTO the ticket so an
+    // engineer/PM picking it up has the spec, not just the theme title. Both are
+    // derived deterministically from the matrix row (root cause, personas, first
+    // action) — same pure-transform contract as the rest of this module.
+    const requirements = isDoubleDown
+      ? `- Extend what already works in "${item}" for ${personaList} without regressing it.\n` +
+        `- Remove the friction that caps adoption (root cause: ${row.rootCause}).\n` +
+        `- Ship the first action: ${firstAction}\n`
+      : `- Resolve the root cause (${row.rootCause}) behind "${item}", not just the surface symptom.\n` +
+        `- Preserve the workflow ${personaList} rely on while fixing it.\n` +
+        `- Ship the first action: ${firstAction}\n`;
+    const acceptance = isDoubleDown
+      ? `- [ ] The improvement to "${item}" is live for ${personaList} with no regression.\n` +
+        `- [ ] The first action is complete and verified.\n` +
+        `- [ ] An adoption metric is instrumented and moving up.\n` +
+        `- [ ] Owning PM has signed off and the change is documented.\n`
+      : `- [ ] "${item}" resolves the described customer pain for ${personaList}.\n` +
+        `- [ ] The first action is complete and verified against the pain above.\n` +
+        `- [ ] A success metric is instrumented and trending the right way.\n` +
+        `- [ ] Owning PM has signed off and the change is documented.\n`;
     return {
       type: "epic",
       key,
@@ -91,7 +120,9 @@ export function draftTicketsFromDeliverable(
         `**From the approved platform-review matrix (${row.verdict.replace("_", "-")}).**\n\n` +
           `**Customer pain:** ${customerPain}\n\n` +
           `**Root cause:** ${row.rootCause} · **Effort:** ${row.effort} · ` +
-          `**Personas:** ${personas.join(", ")}\n\n` +
+          `**Personas:** ${personaList}\n\n` +
+          `### Requirements\n${requirements}\n` +
+          `### Acceptance criteria\n${acceptance}\n` +
           `Source findings: ${sourceFindingKeys.join(", ") || "n/a"}.`,
         6000,
       ),

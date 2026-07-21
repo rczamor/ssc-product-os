@@ -40,18 +40,19 @@ test("reviewer can vote on a finding and approve the matrix on the Plan screen",
   // The AI accuracy & oversight strip is present.
   await expect(page.getByText("AI accuracy & oversight").first()).toBeVisible();
 
-  // Every finding carries a "Your review" up/down control.
-  await expect(page.getByText("Your review").first()).toBeVisible();
+  // Every finding carries an "Is this accurate?" up/down control.
+  await expect(page.getByText("Is this accurate?").first()).toBeVisible();
 
   // Cast an up-vote (▲ / aria-label "Agree") on the first finding; it registers.
   const firstAgree = page.getByRole("button", { name: "Agree" }).first();
   await firstAgree.click();
   await expect(firstAgree).toHaveAttribute("aria-pressed", "true");
 
-  // Approval is a single click that also creates the tickets ("Approve & create
-  // tickets →"). With no LINEAR_API_KEY in e2e the push degrades to a message, but
-  // the run still transitions to approved.
-  const approve = page.getByRole("button", { name: /Approve & create tickets/ });
+  // Approval is a single click. The label is "Approve & create tickets →" when a
+  // theme is flagged, or "Approve plan →" when none are (flagging is the sole
+  // convert trigger). With no LINEAR_API_KEY in e2e the push degrades to a
+  // message, but the run still transitions to approved either way.
+  const approve = page.getByRole("button", { name: /Approve (plan|& create tickets)/ });
   if (await approve.isVisible().catch(() => false)) {
     await approve.click();
   }

@@ -8,13 +8,16 @@ import { formatTimestamp } from "@/lib/validation";
 /**
  * The human approval gate, rendered as the matrix's hero footer. Approval is the
  * SOLE trigger for the matrix→Linear push, and here it also PERFORMS it: approving
- * writes the `approvals` row and then creates the tickets (only the themes flagged
- * "Add to ticket", or the full matrix when none are flagged). Three states:
- *   1. not approved      → "Approve & create tickets"
+ * writes the `approvals` row, archives any downvoted-and-unflagged themes, and
+ * creates tickets for ONLY the themes flagged "Add to ticket" (flagging is the sole
+ * convert trigger — nothing flagged means no tickets). Three states:
+ *   1. not approved      → "Approve & create tickets" / "Approve plan"
  *   2. approved, unpushed → "Create tickets in Linear" (e.g. approved before this
  *                           was wired, or a prior push hit a missing LINEAR_API_KEY)
  *   3. approved, pushed  → "N tickets created" + a link to the Work board.
- * Idempotent throughout: re-approving/re-pushing creates nothing new.
+ * Idempotent throughout: re-approving/re-pushing creates nothing new. While a
+ * click is in flight it reports busy via `onBusyChange` so the parent can lock the
+ * themes area (no voting / flagging mid-approval).
  */
 export default function ApproveMatrix({
   runId,
@@ -24,6 +27,7 @@ export default function ApproveMatrix({
   selectedCount = 0,
   pushed = false,
   pushedCount = 0,
+  onBusyChange,
 }: {
   runId: string;
   approved: boolean;
@@ -32,10 +36,18 @@ export default function ApproveMatrix({
   selectedCount?: number;
   pushed?: boolean;
   pushedCount?: number;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Mirror every busy transition up to the parent so it can gray out / block the
+  // themes area for the duration of the approval.
+  const setBusy = (next: boolean) => {
+    setBusyState(next);
+    onBusyChange?.(next);
+  };
 
   /** Create the tickets in Linear. Surfaces the 503 (no key) / 409 (nothing to
    *  draft) states as a message rather than failing silently. */
@@ -53,7 +65,7 @@ export default function ApproveMatrix({
         `Approved and ${data.ticketCount ?? 0} ticket${data.ticketCount === 1 ? "" : "s"} drafted, but LINEAR_API_KEY isn't set — nothing was pushed to Linear.`,
       );
     } else if (res.status === 409) {
-      setMsg("Nothing to convert — flag at least one theme, or check the matrix has rows.");
+      setMsg("Approved — no themes were flagged “Add to ticket”, so no tickets were created.");
     } else {
       setMsg("Couldn't create tickets — please try again.");
     }
@@ -150,7 +162,7 @@ export default function ApproveMatrix({
                     {selectedCount === 1 ? "" : "s"} will convert.
                   </>
                 ) : (
-                  "The full matrix will convert (flag themes with “Add to ticket” to narrow it)."
+                  "No themes flagged “Add to ticket” — nothing to convert."
                 )}
               </>
             )}
@@ -190,14 +202,15 @@ export default function ApproveMatrix({
                 <>
                   <span className="font-semibold text-accent">{selectedCount}</span> theme
                   {selectedCount === 1 ? "" : "s"} flagged &ldquo;Add to ticket&rdquo; — approval
-                  creates <span className="font-medium text-ink-3">only those</span>.
+                  creates <span className="font-medium text-ink-3">only those</span> and archives any
+                  downvoted themes.
                 </>
               ) : (
                 <>
-                  No themes flagged for tickets — approval converts the{" "}
-                  <span className="font-medium text-ink-3">full matrix</span>. Use{" "}
-                  <span className="font-medium text-ink-3">+ Add to ticket</span> on a row to curate a
-                  subset.
+                  No themes flagged &ldquo;Add to ticket&rdquo; — approval creates no tickets and
+                  archives any downvoted themes. Use{" "}
+                  <span className="font-medium text-ink-3">+ Add to ticket</span> on a row to convert
+                  it.
                 </>
               )}
             </>
@@ -210,7 +223,13 @@ export default function ApproveMatrix({
         onClick={approveAndPush}
         className="flex-none cursor-pointer rounded-lg bg-accent px-[17px] py-[9px] text-[12.5px] font-semibold text-white shadow-accent hover:brightness-[1.08] disabled:opacity-60"
       >
-        {busy ? "Creating tickets…" : "Approve & create tickets →"}
+        {busy
+          ? selectedCount > 0
+            ? "Creating tickets…"
+            : "Approving…"
+          : selectedCount > 0
+            ? "Approve & create tickets →"
+            : "Approve plan →"}
       </button>
     </div>
   );

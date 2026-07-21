@@ -97,11 +97,12 @@ describe("ensureTicketDraft honors the Add-to-ticket selection", () => {
     return run.id;
   }
 
-  it("with no selection, drafts the full deliverable matrix (all rows)", async () => {
+  it("with no selection, drafts nothing (flagging is the sole convert trigger)", async () => {
     const db = await getDb();
     const runId = await seedRun();
+    // The full-matrix fallback was removed: nothing flagged → nothing to draft.
     const draft = await ensureTicketDraft(db, runId);
-    expect(draft?.tickets).toHaveLength(2); // the 2 KFD rows
+    expect(draft).toBeNull();
   });
 
   it("with a human finding flagged, drafts ONLY the selected one (even though it's not in the KFD table)", async () => {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { approvals, runs } from "@/lib/db/schema";
+import { approvals, findings, reviews, runs } from "@/lib/db/schema";
 import { isUuid } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
  * This is the SOLE trigger for the Phase-3 matrix→Linear push; nothing else may
  * write an approval. Idempotent: approving an already-approved run returns the
  * existing approval (no duplicate). Auth is enforced by middleware.
+ *
+ * On approval it also archives the themes the human rejected: any finding with a
+ * human down-vote that was NOT flagged "Add to ticket" is set archived (reason
+ * 'rejected') so it drops off the active Plan list. Flagged themes are archived
+ * separately — as 'converted' — only once they're actually pushed to Linear.
  */
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,6 +31,32 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     .values({ runId: id, approvedBy })
     .onConflictDoNothing({ target: approvals.runId })
     .returning();
+
+  // Archive downvoted-and-not-flagged themes: they were reviewed as inaccurate
+  // and aren't converting to a ticket, so they leave the active list. Flagged
+  // themes stay active until their push archives them as 'converted'.
+  const downvotes = await db
+    .select({ findingKey: reviews.findingKey, persona: reviews.persona })
+    .from(reviews)
+    .where(
+      and(eq(reviews.runId, id), eq(reviews.reviewerType, "human"), eq(reviews.verdict, "down")),
+    );
+  if (downvotes.length > 0) {
+    const match = downvotes.map((d) =>
+      and(eq(findings.key, d.findingKey), eq(findings.persona, d.persona)),
+    );
+    await db
+      .update(findings)
+      .set({ archived: true, archivedReason: "rejected" })
+      .where(
+        and(
+          eq(findings.runId, id),
+          eq(findings.selectedForTicket, false),
+          eq(findings.archived, false),
+          or(...match),
+        ),
+      );
+  }
 
   const approval =
     inserted ?? (await db.select().from(approvals).where(eq(approvals.runId, id)))[0];

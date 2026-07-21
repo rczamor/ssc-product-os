@@ -46,7 +46,16 @@ export interface FindingRow {
   verdictBd: string;
   humanVote: "up" | "down" | null;
   selectedForTicket: boolean;
+  archived: boolean;
+  archivedReason: string | null;
 }
+
+/** How an archived theme reads in the Archived view (read-only). */
+const ARCHIVE_REASON: Record<string, { label: string; color: string; bg: string; bd: string }> = {
+  converted: { label: "Converted to ticket", color: "#1f7d51", bg: "rgba(31,157,99,0.1)", bd: "rgba(31,157,99,0.3)" },
+  rejected: { label: "Downvoted — archived", color: "#b6353f", bg: "rgba(204,59,70,0.09)", bd: "rgba(204,59,70,0.3)" },
+};
+const ARCHIVE_FALLBACK = { label: "Archived", color: "#6b6152", bg: "#f2ede4", bd: "#e5e0d6" };
 
 /**
  * The interactive core of the Plan screen: the persona filter row plus the
@@ -90,13 +99,24 @@ export default function PlanBoard({
 }) {
   const [active, setActive] = useState<PersonaSlug | null>(initialPersona);
   const [origin, setOrigin] = useState<OriginFilter>("all");
+  const [view, setView] = useState<"active" | "archived">("active");
+  // True while an approval/push is in flight — locks the themes area so no vote
+  // or "Add to ticket" toggle can change mid-approval.
+  const [approving, setApproving] = useState(false);
   const [openDetail, setOpenDetail] = useState<Record<string, boolean>>({});
   // Which themes the human has flagged to convert to Linear tickets. Seeded from
   // the persisted flag; toggling is optimistic (reverts on a failed write).
   const [selected, setSelected] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(findings.map((f) => [f.id, f.selectedForTicket])),
   );
-  const selectedCount = Object.values(selected).filter(Boolean).length;
+
+  // Archived themes are hidden from the active list (converted → in Linear;
+  // rejected → downvoted). The Archived view surfaces them read-only.
+  const activeFindings = findings.filter((f) => !f.archived);
+  const archivedFindings = findings.filter((f) => f.archived);
+  const readOnly = view === "archived";
+  // Only flagged AND still-active themes convert on approval.
+  const selectedCount = activeFindings.filter((f) => selected[f.id]).length;
 
   async function toggleSelect(f: FindingRow) {
     const next = !selected[f.id];
@@ -120,16 +140,20 @@ export default function PlanBoard({
     }
   }
 
+  // The current view's base set — the source/persona filters and counts apply
+  // within it, never mixing active and archived themes.
+  const base = readOnly ? archivedFindings : activeFindings;
+
   // Origin counts (agent vs human) drive the source-filter chip labels.
-  const agentCount = findings.filter((f) => f.origin !== "human").length;
-  const humanCount = findings.filter((f) => f.origin === "human").length;
+  const agentCount = base.filter((f) => f.origin !== "human").length;
+  const humanCount = base.filter((f) => f.origin === "human").length;
   const originCount: Record<OriginFilter, number> = {
-    all: findings.length,
+    all: base.length,
     agent: agentCount,
     human: humanCount,
   };
 
-  const shown = findings.filter(
+  const shown = base.filter(
     (f) =>
       (active ? f.persona === active : true) &&
       (origin === "all" ? true : origin === "human" ? f.origin === "human" : f.origin !== "human"),
@@ -233,27 +257,43 @@ export default function PlanBoard({
               </div>
             </div>
 
-            <ReviewControls
-              runId={runId}
-              findingKey={f.key}
-              persona={f.persona}
-              initialVerdict={f.humanVote}
-            />
+            {readOnly ? (
+              (() => {
+                const r = ARCHIVE_REASON[f.archivedReason ?? ""] ?? ARCHIVE_FALLBACK;
+                return (
+                  <div
+                    className="mt-[2px] rounded-[6px] border px-2 py-[6px] text-center text-[10px] font-semibold"
+                    style={{ background: r.bg, color: r.color, borderColor: r.bd }}
+                  >
+                    {r.label}
+                  </div>
+                );
+              })()
+            ) : (
+              <>
+                <ReviewControls
+                  runId={runId}
+                  findingKey={f.key}
+                  persona={f.persona}
+                  initialVerdict={f.humanVote}
+                />
 
-            <button
-              type="button"
-              onClick={() => toggleSelect(f)}
-              aria-pressed={Boolean(selected[f.id])}
-              title="Include this theme when the approved matrix is pushed to Linear"
-              className="mt-[2px] flex items-center justify-center gap-[5px] rounded-[6px] border px-2 py-[5px] text-[10.5px] font-semibold"
-              style={
-                selected[f.id]
-                  ? { background: "var(--accent-bg)", color: "var(--accent)", borderColor: "var(--accent-bd)" }
-                  : { background: "#fff", color: "#6b6152", borderColor: "#e5e0d6" }
-              }
-            >
-              {selected[f.id] ? "✓ In tickets" : "+ Add to ticket"}
-            </button>
+                <button
+                  type="button"
+                  onClick={() => toggleSelect(f)}
+                  aria-pressed={Boolean(selected[f.id])}
+                  title="Include this theme when the approved matrix is pushed to Linear"
+                  className="mt-[2px] flex items-center justify-center gap-[5px] rounded-[6px] border px-2 py-[5px] text-[10.5px] font-semibold"
+                  style={
+                    selected[f.id]
+                      ? { background: "var(--accent-bg)", color: "var(--accent)", borderColor: "var(--accent-bd)" }
+                      : { background: "#fff", color: "#6b6152", borderColor: "#e5e0d6" }
+                  }
+                >
+                  {selected[f.id] ? "✓ In tickets" : "+ Add to ticket"}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -355,10 +395,50 @@ export default function PlanBoard({
       </div>
 
       {/* THEMES matrix hero */}
-      <section className="mb-[18px] overflow-hidden rounded-xl border border-line bg-card shadow-card">
+      <section className="relative mb-[18px] overflow-hidden rounded-xl border border-line bg-card shadow-card">
+        {/* Approval lockout: while a click is in flight, blanket the whole matrix
+            so no vote or "Add to ticket" toggle can change mid-approval. */}
+        {approving && (
+          <div
+            className="absolute inset-0 z-20 flex items-center justify-center"
+            style={{ background: "rgba(250,248,244,0.72)" }}
+          >
+            <div className="flex items-center gap-[10px] rounded-lg border border-line bg-card px-4 py-[10px] shadow-card">
+              <span
+                className="h-[15px] w-[15px] animate-spin rounded-full border-2 border-line-2"
+                style={{ borderTopColor: "var(--accent)" }}
+              />
+              <span className="text-[12.5px] font-semibold text-ink-2">
+                Approving — creating tickets…
+              </span>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-[11px] border-b border-line-2 px-5 py-[15px]">
           <h2 className="text-base font-bold text-ink">Themes</h2>
           <span className="text-[11.5px] text-ink-5">synthesized deliverable · schema-gated</span>
+          {/* Active / Archived view toggle */}
+          <div className="inline-flex rounded-lg border border-line bg-card p-[3px]">
+            {(["active", "archived"] as const).map((v) => {
+              const on = view === v;
+              const n = v === "active" ? activeFindings.length : archivedFindings.length;
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className="flex cursor-pointer items-center gap-[6px] rounded-[6px] px-[11px] py-[5px] text-[12px] font-semibold capitalize"
+                  style={{
+                    background: on ? "var(--accent-bg)" : "transparent",
+                    color: on ? "var(--accent)" : "#6b6152",
+                  }}
+                >
+                  {v}
+                  <span className="font-mono text-[10.5px] font-medium text-ink-6">{n}</span>
+                </button>
+              );
+            })}
+          </div>
           <div className="ml-auto flex gap-[6px] font-mono text-[10.5px]">
             <span
               className="rounded-[5px] px-2 py-[2px] text-green-dark"
@@ -378,38 +458,61 @@ export default function PlanBoard({
         <AccuracyStrip accuracy={accuracy} variant="strip" retriesCaught={retriesCaught} />
 
         <div className="px-5 py-[18px]">
-          <div className="mb-[18px]">
-            <AddHumanFinding runId={runId} />
-          </div>
-
-          <div className="mb-[11px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-green-dark">
-            Things that work
-          </div>
-          {likes.length === 0 ? (
-            <p className="mb-6 text-[12px] text-ink-5">No likes for this filter yet.</p>
+          {readOnly ? (
+            <div className="mb-[16px] flex items-center gap-[8px] rounded-lg border border-line-2 bg-card-alt px-[13px] py-[9px] text-[11.5px] text-ink-4">
+              <span className="h-[6px] w-[6px] flex-none rounded-full bg-ink-5" />
+              Archived themes are read-only — converted themes live on as Linear tickets; downvoted
+              themes were rejected during review.
+            </div>
           ) : (
-            <div className="mb-6 flex flex-col gap-[10px]">{likes.map(row)}</div>
+            <div className="mb-[18px]">
+              <AddHumanFinding runId={runId} />
+            </div>
           )}
 
-          <div className="mb-[11px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-red-dark">
-            Things that don&apos;t — with a first action for Monday
-          </div>
-          {dislikes.length === 0 ? (
-            <p className="mb-2 text-[12px] text-ink-5">No dislikes for this filter yet.</p>
+          {readOnly && shown.length === 0 ? (
+            <p className="py-4 text-center text-[12px] text-ink-5">
+              Nothing archived yet — downvoted or converted themes appear here after approval.
+            </p>
           ) : (
-            <div className="mb-2 flex flex-col gap-[10px]">{dislikes.map(row)}</div>
+            <>
+              <div className="mb-[11px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-green-dark">
+                Things that work
+              </div>
+              {likes.length === 0 ? (
+                <p className="mb-6 text-[12px] text-ink-5">
+                  {readOnly ? "No archived likes." : "No likes for this filter yet."}
+                </p>
+              ) : (
+                <div className="mb-6 flex flex-col gap-[10px]">{likes.map(row)}</div>
+              )}
+
+              <div className="mb-[11px] text-[10.5px] font-semibold uppercase tracking-[0.1em] text-red-dark">
+                Things that don&apos;t — with a first action for Monday
+              </div>
+              {dislikes.length === 0 ? (
+                <p className="mb-2 text-[12px] text-ink-5">
+                  {readOnly ? "No archived dislikes." : "No dislikes for this filter yet."}
+                </p>
+              ) : (
+                <div className="mb-2 flex flex-col gap-[10px]">{dislikes.map(row)}</div>
+              )}
+            </>
           )}
         </div>
 
-        <ApproveMatrix
-          runId={runId}
-          approved={approved}
-          approvedBy={approvedBy}
-          approvedAt={approvedAt}
-          selectedCount={selectedCount}
-          pushed={pushed}
-          pushedCount={pushedCount}
-        />
+        {!readOnly && (
+          <ApproveMatrix
+            runId={runId}
+            approved={approved}
+            approvedBy={approvedBy}
+            approvedAt={approvedAt}
+            selectedCount={selectedCount}
+            pushed={pushed}
+            pushedCount={pushedCount}
+            onBusyChange={setApproving}
+          />
+        )}
       </section>
     </>
   );

@@ -1,8 +1,9 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { and, eq } from "drizzle-orm";
 import { NextRequest } from "next/server";
 import { getDb } from "@/lib/db";
 import { seed } from "@/lib/db/seed";
-import { runs } from "@/lib/db/schema";
+import { findings, reviews, runs } from "@/lib/db/schema";
 
 // Route handlers under test (invoked directly against in-memory PGlite).
 import { POST as loginPost } from "@/app/api/auth/login/route";
@@ -316,7 +317,15 @@ describe("reviewer layer + approval gate", () => {
     );
     expect((await beforeDraftPost.json()).draft).toBeNull();
 
-    // The dedicated draft POST materializes it from the deliverable's KFD table.
+    // Flagging is the sole convert trigger now — with nothing flagged a draft
+    // materializes to null. Flag one theme so the draft has something to convert.
+    const db = await getDb();
+    await db
+      .update(findings)
+      .set({ selectedForTicket: true })
+      .where(and(eq(findings.runId, id), eq(findings.key, "factor-drilldown-so-what")));
+
+    // The dedicated draft POST materializes it from the flagged theme.
     const draftPost = await ticketsDraftPost(jsonReq(`/api/runs/${id}/tickets/draft`, "POST"), params(id));
     const draftBody = await draftPost.json();
     expect(draftBody.approved).toBe(true);
@@ -335,5 +344,37 @@ describe("reviewer layer + approval gate", () => {
     const push = await ticketsPushPost(jsonReq(`/api/runs/${id}/tickets/push`, "POST"), params(id));
     expect(push.status).toBe(503);
     expect((await push.json()).draftReady).toBe(true);
+  });
+
+  it("archives downvoted-and-unflagged themes on approve (reason 'rejected'); flagged themes stay active", async () => {
+    const db = await getDb();
+    const [run] = await db
+      .insert(runs)
+      .values({ status: "completed", trigger: "slash", personas: ["ciso"] })
+      .returning();
+    const PAIN = "Pain that is long enough to satisfy the schema minimum length.";
+    await db.insert(findings).values([
+      { runId: run.id, persona: "ciso", key: "rej", kind: "dislike", title: "Rejected theme", detail: "d", customerPain: PAIN, rootCause: "ux", effort: "M", firstAction: "x", verdict: "fix", origin: "agent", raw: {} },
+      { runId: run.id, persona: "ciso", key: "flag", kind: "dislike", title: "Flagged theme", detail: "d", customerPain: PAIN, rootCause: "ux", effort: "M", firstAction: "x", verdict: "fix", origin: "agent", selectedForTicket: true, raw: {} },
+      { runId: run.id, persona: "ciso", key: "keep", kind: "like", title: "Untouched theme", detail: "d", jtbd: "j", origin: "agent", raw: {} },
+    ]);
+    // Down-vote the first AND the flagged one — the flag must win, keeping it active.
+    await db.insert(reviews).values([
+      { runId: run.id, findingKey: "rej", persona: "ciso", reviewerType: "human", verdict: "down" },
+      { runId: run.id, findingKey: "flag", persona: "ciso", reviewerType: "human", verdict: "down" },
+    ]);
+
+    const res = await approvePost(jsonReq(`/api/runs/${run.id}/approve`, "POST"), params(run.id));
+    expect(res.status).toBe(200);
+
+    const rows = await db.select().from(findings).where(eq(findings.runId, run.id));
+    const byKey = Object.fromEntries(rows.map((r) => [r.key, r]));
+    // Downvoted + not flagged → archived as rejected.
+    expect(byKey.rej.archived).toBe(true);
+    expect(byKey.rej.archivedReason).toBe("rejected");
+    // Downvoted BUT flagged → flag wins; stays active to convert on push.
+    expect(byKey.flag.archived).toBe(false);
+    // No down-vote → untouched.
+    expect(byKey.keep.archived).toBe(false);
   });
 });

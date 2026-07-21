@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE, verifySessionToken } from "@/lib/auth";
 
-const PUBLIC_PATHS = new Set(["/login", "/api/auth/login"]);
+// Public paths bypass the session gate. `/linear/webhook` is called by Linear
+// (no session cookie); it authenticates itself via its HMAC signature check.
+const PUBLIC_PATHS = new Set(["/login", "/api/auth/login", "/linear/webhook"]);
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

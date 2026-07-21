@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildTimeline, buildTimelineBuckets, phaseOf, trackOf } from "@/lib/work-board";
+import { bucketOf, buildTimeline, buildTimelineBuckets, phaseOf, trackOf, TIMELINE_BUCKETS } from "@/lib/work-board";
 import type { WorkIssue } from "@/lib/db/queries";
 
 const PHASES = [{ label: "phase:week-1" }, { label: "phase:week-2" }];
@@ -105,5 +105,55 @@ describe("buildTimelineBuckets", () => {
 
     expect(buckets.find((b) => b.key === "shipped")!.issues.map((i) => i.id)).toEqual(["done"]);
     expect(buckets.find((b) => b.key === "today")!.issues.map((i) => i.id)).toEqual(["today"]);
+  });
+});
+
+describe("bucketOf — calendar-aware, due-date driven", () => {
+  // now is Monday 2026-07-20 (so the current calendar week is Mon 07-20 … Sun 07-26).
+  const now = new Date("2026-07-20T12:00:00Z");
+  const at = (dueDate: string) => bucketOf(issue({ dueDate }), now);
+
+  it("the second lane is 'Next 48 hours' with the expected label", () => {
+    expect(TIMELINE_BUCKETS[1].key).toBe("next-48h");
+    expect(TIMELINE_BUCKETS[1].label).toBe("Next 48 hours");
+  });
+
+  it("Today covers due-today and overdue", () => {
+    expect(at("2026-07-20")).toBe("today"); // today
+    expect(at("2026-07-18")).toBe("today"); // overdue
+  });
+
+  it("Next 48 hours is the following two days", () => {
+    expect(at("2026-07-21")).toBe("next-48h"); // +1
+    expect(at("2026-07-22")).toBe("next-48h"); // +2
+  });
+
+  it("This week is the remainder of the current calendar week after those 3 days", () => {
+    expect(at("2026-07-23")).toBe("this-week"); // Thu, still this calendar week
+    expect(at("2026-07-26")).toBe("this-week"); // Sun, last day of this calendar week
+  });
+
+  it("Next week / months follow the calendar, not a rolling window", () => {
+    expect(at("2026-07-27")).toBe("next-week"); // next Monday
+    expect(at("2026-08-02")).toBe("next-week"); // next Sunday
+    // The current calendar month (July) is fully consumed by the lanes above,
+    // so August dues land in Next month, and September+ in This quarter.
+    expect(at("2026-08-03")).toBe("next-month");
+    expect(at("2026-08-31")).toBe("next-month");
+    expect(at("2026-09-15")).toBe("this-quarter");
+  });
+
+  it("empties This week once the first three days reach the weekend (a Friday now)", () => {
+    const friday = new Date("2026-07-24T12:00:00Z");
+    // Fri + the next 48h (Sat, Sun) already spans the rest of the calendar week,
+    // so there is no 'this week' remainder — Sun is still within the 48h window.
+    expect(bucketOf(issue({ dueDate: "2026-07-26" }), friday)).toBe("next-48h");
+    expect(bucketOf(issue({ dueDate: "2026-07-27" }), friday)).toBe("next-week");
+  });
+
+  it("falls back to the phase label when an issue has no due date", () => {
+    expect(bucketOf(issue({ dueDate: null, labels: ["phase:48h"] }), now)).toBe("next-48h");
+    expect(bucketOf(issue({ dueDate: null, labels: ["phase:week-1"] }), now)).toBe("this-week");
+    expect(bucketOf(issue({ dueDate: null, labels: [] }), now)).toBe("this-quarter");
   });
 });

@@ -1,16 +1,24 @@
 # SSC Product OS
 
-A working answer to the Head of Product Operations & AI Innovations take-home, built as **one three-screen system** rather than five separate documents: **Planning** (the platform-review evaluation, matrix, and human+agent review layer), **Work** (the real Linear board this evaluation drives, plus the auto-generated Friday Update), and **Metrics** (the 14-metric weekly dashboard). A fourth screen, **Personas**, documents the persona corpus the evaluation agents ground their findings in.
+**Live app: [ssc-product-os.vercel.app](https://ssc-product-os.vercel.app)**
 
-Everything a reviewer needs to walk end-to-end lives behind one password-gated login: Planning → matrix with human + agent reviews → Approve → real Linear tickets appear → Work (Kanban, timeline, internal/external toggle, Friday Update) → Metrics (tripped triggers + health board). Every agent artifact is traceable in Langfuse.
+A working answer to the Head of Product Operations & AI Innovations take-home, built as **one three-screen system** rather than five separate documents:
+
+- **Plan** — persona agents drive a live browser through SecurityScorecard and produce a schema-gated Kill/Fix/Double-Down matrix; humans review each theme (up/down), add their own themes, flag the ones worth converting, and **approve** — the single gate that turns flagged themes into real Linear tickets (with requirements + acceptance criteria written into each). Rejected and converted themes archive out of the active list.
+- **Work** — the real **SSC-ProductOS Linear board** the plan drives, with **two-way sync** (approval creates tickets in Linear; a Linear webhook mirrors edits back in near-real-time), a due-date timeline, a "How We Work" operating model, five reusable AI workflows, and the auto-generated **Friday Update**.
+- **Measure** — the 14-metric weekly dashboard (Appendix A) with tripped-trigger routing and a Feature Portfolio Health board.
+
+A fourth screen, **Personas**, documents the corpus the evaluation agents ground every finding in. Everything lives behind one password-gated login, and every agent artifact is traceable in Langfuse.
+
+The end-to-end walk: **Plan** (matrix + human/agent reviews + accuracy strip) → **Approve** → real Linear tickets appear → **Work** (Kanban / due-date timeline / internal-external toggle / Friday Update) → **Measure** (tripped triggers + health board).
 
 ## The three screens (+ Personas)
 
 | Screen | Route | What it shows |
 | --- | --- | --- |
-| **Planning** | `/`, `/runs/[id]` | Evaluation runs, the Kill/Fix/Double-Down matrix, per-finding human+agent review controls, an accuracy strip (human agree-rate, judge scores), the customer-feedback ingestion panel, and the Approve-matrix gate. |
-| **Work** | `/work` | The SSC-ProductOS Linear board, synced server-side: Kanban by workflow state, Timeline by 30-day phase (internal os-build/role-plan work vs. external product tickets drafted from an approved matrix), and the generated **Friday Product & Engineering Update**. |
-| **Metrics** | `/metrics` | All 14 Appendix-A metrics as cards (current value, 12-week trend, tripped-trigger badges, expandable metadata + linked features) plus the Feature Portfolio Health board (5 states, movers). |
+| **Plan** | `/`, `/runs/[id]` | Evaluation runs and the Kill/Fix/Double-Down matrix; per-theme "Is this accurate?" up/down review, agent + human sources with a filter, an accuracy strip (human agree-rate, judge scores), the customer-feedback ingestion panel, an **Active / Archived** toggle, and the **Approve** gate that flags-to-tickets, archives downvoted/converted themes, and locks the board while it runs. |
+| **Work** | `/work` | The SSC-ProductOS Linear board, synced server-side: Kanban by workflow state, a **due-date timeline** (Today → Next 48 hours → This week → … lanes), internal os-build/role-plan work vs. external matrix tickets, the five reusable **AI workflows**, the **"How We Work"** operating model, and the generated **Friday Product & Engineering Update**. Kept fresh by a manual **Sync** and a real-time inbound **Linear webhook**. |
+| **Measure** | `/metrics` | All 14 Appendix-A metrics as cards (current value, 12-week trend, tripped-trigger badges, expandable metadata + linked features) plus the Feature Portfolio Health board (5 states, movers). |
 | **Personas** | `/personas` | The documented persona corpus (JTBD, KPIs, evaluation lens, sourced knowledge base) the evaluation agents ground every finding in. |
 
 ## How it works
@@ -59,14 +67,49 @@ Everything a reviewer needs to walk end-to-end lives behind one password-gated l
 | `app/` | Next.js admin console (password-gated): Planning, Work, Metrics, Personas, run detail, APIs |
 | `tests/` | Vitest unit suite (PGlite-backed) + Playwright e2e suite |
 
-## Running locally
+## Install & run locally
+
+**Prerequisites:** Node.js **20+** (built and tested on 22) and npm. No database or API keys are required for a local run — the app falls back to an in-process/file-backed **PGlite** database and seeds demo data, so you can boot it with nothing but the two admin-login vars.
 
 ```bash
+# 1. Clone
+git clone https://github.com/rczamor/ssc-product-os.git
+cd ssc-product-os
+
+# 2. Install dependencies
 npm install
-cp .env.example .env.local   # fill in secrets (never committed)
-npm run dev                  # admin UI on :3000 (PGlite until DATABASE_URL is set)
-npm run test:unit && npm run test:e2e
+
+# 3. Configure env — copy the template and fill in at least the admin login
+cp .env.example .env.local
+#    Minimum to log in locally:
+#      ADMIN_EMAIL=you@example.com
+#      ADMIN_PASSWORD=<anything>
+#      SESSION_SECRET=<openssl rand -hex 32>
+#    Optional: PGLITE_SEED=1 to seed the labeled demo run/feedback/metrics on first boot.
+#    Leave DATABASE_URL / LINEAR_* / LANGFUSE_* empty — those unlock Neon, Linear,
+#    and tracing but aren't needed to run the UI.
+
+# 4. Run the dev server → http://localhost:3000  (log in with ADMIN_EMAIL / ADMIN_PASSWORD)
+npm run dev
+
+# 5. (optional) Tests
+npm run test:unit          # Vitest, PGlite-backed
+npm run test:e2e           # Playwright (builds + serves, seeds a fresh PGlite)
+npm run typecheck && npm run lint
 ```
+
+**Environment variables** (full reference in `.env.example`):
+
+| Variable | Needed for | Notes |
+| --- | --- | --- |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Login (always) | The admin credentials you log in with. |
+| `SESSION_SECRET` | Login (always) | Signs the session cookie — `openssl rand -hex 32`. |
+| `DATABASE_URL` | Persistent data | Neon Postgres. Absent → PGlite (local file / in-memory), auto-migrated on first connect. |
+| `LINEAR_API_KEY` | Linear push/sync | Server-side ticket create + board sync. Absent → those paths degrade to a 503, the rest works. |
+| `LINEAR_WEBHOOK_SECRET` | Real-time inbound sync | Verifies the `POST /linear/webhook` HMAC. |
+| `LANGFUSE_*` | Tracing | `PUBLIC_KEY` / `SECRET_KEY` / `BASE_URL` for run observability. |
+| `SSC_EMAIL`, `SSC_PASSWORD` | Live evaluation | SecurityScorecard demo login — **runner-side only**, never deployed. |
+| `DB_SEED_ON_EMPTY=1` | Demo data on Neon | Seeds an empty deployed DB with the labeled demo run/feedback/metrics. |
 
 Run a live evaluation from a Claude Code session in this repo:
 
